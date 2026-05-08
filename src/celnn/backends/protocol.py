@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -19,5 +19,5 @@ class ArrayBackend(Protocol):
         *,
         mode: str,
         cval: float = 0.0,
-    ) -> np.ndarray:
+    ) -> np.ndarray | Any:
         """Aggregate local neighborhoods using a stencil."""

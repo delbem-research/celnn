@@ -21,6 +21,15 @@ For optional SciPy, image, and plotting support:
 pip install celnn[all]
 ```
 
+For GPU execution through CuPy/CUDA:
+
+```bash
+pip install celnn[gpu]
+```
+
+Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
+and fall back to CPU, or `device="cpu"` for the default NumPy backend.
+
 ## Quick start
 
 ```python
@@ -35,6 +44,7 @@ net = CellularNetwork(
     control=np.array([[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]),
     bias=0.0,
     boundary="reflect",
+    device="auto",
 )
 
 result = net.run(SimulationConfig(t_end=1.0, dt=0.01))
@@ -56,6 +66,7 @@ print(result.output.shape)
 * Generic `CellularNetwork` API for 1D, 2D, and SciPy-backed ND simulations.
 * Reusable `Template` and `TemplateRegistry` abstractions.
 * Built-in activation functions, boundary modes, and solver options.
+* Optional CuPy/CUDA backend for GPU local stencil aggregation.
 * Optional image, signal, grid, serialization, and visualization helpers.
 * Demonstrative built-in templates for image processing, logic, diffusion, and pattern formation.
 * Tests, examples, and technical documentation aimed at research and experimentation.

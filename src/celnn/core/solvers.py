@@ -63,6 +63,8 @@ def _store_result(
     metadata = {
         "solver": network._last_solver,
         "boundary": network.boundary,
+        "backend": network.backend.name,
+        "device": network.device,
         "shape": state.shape,
     }
     if trajectory_state is not None and trajectory_output is not None:

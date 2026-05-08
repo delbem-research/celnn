@@ -317,11 +317,43 @@ Keep domain-specific I/O and preprocessing outside `celnn.core`. Domain adapters
 
 ### Future backend design
 
-The backend protocol is intentionally small. A future JAX, CuPy, PyTorch, or Numba backend would mainly need:
+The backend protocol is intentionally small. Version 0.1 includes a
+NumPy backend and an optional CuPy/CUDA backend. A future JAX, PyTorch,
+or Numba backend would mainly need:
 
 - array conversion,
 - local stencil aggregation,
 - compatible activation handling.
+
+### GPU execution
+
+Install GPU support with:
+
+```bash
+pip install celnn[gpu]
+```
+
+Then select the device on `CellularNetwork`:
+
+```python
+net = CellularNetwork(
+    input=u,
+    feedback=A,
+    control=B,
+    boundary="reflect",
+    device="gpu",
+)
+```
+
+Device options:
+
+- `cpu`: use the NumPy backend. This is the default.
+- `gpu` or `cuda`: require the CuPy/CUDA backend and fail clearly if it
+  cannot run.
+- `auto`: use CuPy/CUDA when available, otherwise fall back to NumPy.
+
+The public result arrays are returned as NumPy arrays. The CuPy backend
+accelerates local stencil aggregation on the GPU.
 
 ## Complete examples
 

@@ -7,7 +7,7 @@ from typing import Any
 
 import numpy as np
 
-from ..backends import get_default_backend
+from ..backends import ArrayBackend, get_backend
 from .activations import activation_name, resolve_activation
 from .boundary import normalize_boundary_mode
 from .dynamics import derivative as compute_derivative
@@ -42,6 +42,8 @@ class CellularNetwork:
         boundary: str = "constant",
         boundary_value: float = 0.0,
         dtype: Any | None = None,
+        device: str = "cpu",
+        backend: ArrayBackend | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
         input_dtype = dtype if dtype is not None else float
@@ -58,7 +60,8 @@ class CellularNetwork:
         self.boundary_value = float(boundary_value)
         self.dtype = np.dtype(dtype or float)
         self.metadata = deepcopy(metadata) if metadata is not None else {}
-        self.backend = get_default_backend()
+        self.device = device.lower().strip()
+        self.backend = backend if backend is not None else get_backend(device)
 
         self.feedback = self._resolve_template_array(
             value=feedback,
@@ -108,6 +111,8 @@ class CellularNetwork:
         boundary: str = "constant",
         boundary_value: float = 0.0,
         dtype: Any | None = None,
+        device: str = "cpu",
+        backend: ArrayBackend | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> "CellularNetwork":
         """Construct a network from a reusable template."""
@@ -132,6 +137,8 @@ class CellularNetwork:
             boundary=boundary,
             boundary_value=boundary_value,
             dtype=dtype,
+            device=device,
+            backend=backend,
             metadata=combined_metadata,
         )
 
@@ -248,6 +255,8 @@ class CellularNetwork:
             "boundary": self.boundary,
             "boundary_value": self.boundary_value,
             "dtype": self.dtype.name,
+            "device": self.device,
+            "backend": self.backend.name,
             "metadata": deepcopy(self.metadata),
         }
 
@@ -265,6 +274,7 @@ class CellularNetwork:
             boundary=data.get("boundary", "constant"),
             boundary_value=float(data.get("boundary_value", 0.0)),
             dtype=data.get("dtype"),
+            device=data.get("device", "cpu"),
             metadata=deepcopy(data.get("metadata", {})),
         )
         current_state = data.get("current_state")

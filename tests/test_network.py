@@ -13,6 +13,7 @@ def test_network_creation_defaults():
     assert net.feedback.shape == (3,)
     assert net.control.shape == (3,)
     assert np.allclose(net.state, 0.0)
+    assert net.backend.name == "numpy"
 
 
 def test_network_rejects_mismatched_state_shape():
@@ -59,3 +60,12 @@ def test_run_returns_result():
     result = net.run(SimulationConfig(t_end=0.2, dt=0.1))
     assert result.state.shape == signal.shape
     assert result.output.shape == signal.shape
+    assert result.metadata["backend"] == "numpy"
+
+
+def test_network_accepts_auto_device():
+    signal = np.ones(5)
+    net = CellularNetwork(input=signal, device="auto")
+    result = net.run(SimulationConfig(t_end=0.1, dt=0.1))
+    assert result.state.shape == signal.shape
+    assert result.metadata["backend"] in {"numpy", "cupy"}

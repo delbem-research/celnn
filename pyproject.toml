@@ -42,6 +42,10 @@ dependencies = [
 
 [project.optional-dependencies]
 scipy = ["scipy>=1.10"]
+gpu = [
+  "cupy-cuda12x>=13.0",
+  "nvidia-cuda-nvrtc-cu12>=12.0",
+]
 image = ["pillow>=10.0"]
 viz = ["matplotlib>=3.8"]
 dev = [
@@ -52,6 +56,8 @@ dev = [
 ]
 all = [
   "scipy>=1.10",
+  "cupy-cuda12x>=13.0",
+  "nvidia-cuda-nvrtc-cu12>=12.0",
   "pillow>=10.0",
   "matplotlib>=3.8",
 ]

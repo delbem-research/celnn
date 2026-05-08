@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from ..backends.numpy_backend import NumPyBackend
+from ..backends import ArrayBackend
 
 
 def local_feedback(
     state: np.ndarray,
     feedback: np.ndarray,
     activation,
-    backend: NumPyBackend,
+    backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
 ) -> np.ndarray:
@@ -25,7 +25,7 @@ def local_feedback(
 def local_control(
     input_array: np.ndarray,
     control: np.ndarray,
-    backend: NumPyBackend,
+    backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
 ) -> np.ndarray:
@@ -42,7 +42,7 @@ def local_drive(
     control: np.ndarray,
     bias: np.ndarray,
     activation,
-    backend: NumPyBackend,
+    backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
 ) -> np.ndarray:
@@ -63,7 +63,7 @@ def derivative(
     control: np.ndarray,
     bias: np.ndarray,
     activation,
-    backend: NumPyBackend,
+    backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
 ) -> np.ndarray:
