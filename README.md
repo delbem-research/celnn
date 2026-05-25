@@ -30,6 +30,25 @@ pip install celnn[gpu]
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 
+## Development and verification
+
+Create the canonical development environment:
+
+```bash
+conda env create -f environment.yml
+conda activate pycelnn
+pip install -e . --no-deps
+```
+
+Run local checks:
+
+```bash
+python -m compileall src
+pytest
+ruff check .
+mypy src/celnn/core/network.py src/celnn/core/simulation.py src/celnn/core/solvers.py
+```
+
 ## Quick start
 
 ```python
@@ -92,6 +111,17 @@ net = CellularNetwork(
 result = net.run(SimulationConfig(t_end=5.0, dt=0.05))
 print(result.output[:5])
 ```
+
+## Implementation status
+
+- Maturity: alpha (`0.1.x`), focused on regular-grid CelNN systems.
+- CI-verified baseline: CPU/NumPy dynamics, SciPy solver path, templates,
+  serialization, and image/signal utilities.
+- GPU coverage:
+  - deterministic CuPy backend behavior is tested in CI with a stubbed
+    CuPy runtime.
+  - real CUDA execution tests run when CuPy and a CUDA device are
+    available (tests skip otherwise).
 
 ## License
 

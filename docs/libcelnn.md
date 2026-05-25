@@ -70,7 +70,6 @@ Constructor:
 ```python
 CellularNetwork(
     input,
-    state_shape=None,
     initial_state=None,
     feedback=None,
     control=None,
@@ -79,17 +78,18 @@ CellularNetwork(
     boundary="constant",
     boundary_value=0.0,
     dtype=None,
+    device="cpu",
     metadata=None,
 )
 ```
 
 Default behavior:
 
-- `state_shape` defaults to `input.shape`.
 - `initial_state` defaults to zeros.
 - `feedback` defaults to a centered identity-like stencil.
 - `control` defaults to a zero stencil with the same shape as `feedback`.
 - `bias` can be scalar or broadcastable array.
+- `device` defaults to `"cpu"`.
 
 Key methods:
 
@@ -150,7 +150,6 @@ SimulationConfig(
     solver="euler",
     return_trajectory=False,
     store_every=1,
-    dtype=None,
     stability_checks=True,
     progress=False,
 )
@@ -171,7 +170,7 @@ Holds:
 - stored `time`
 - optional `trajectory_state`
 - optional `trajectory_output`
-- `metadata`
+- `metadata` (solver/backend/device and optional warnings)
 - optional `convergence`
 
 ## Activation functions

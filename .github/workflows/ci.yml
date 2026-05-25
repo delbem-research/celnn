@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-activate-base: false
+          activate-environment: pycelnn
+          environment-file: environment.yml
+
+      - name: Install package
+        shell: bash -el {0}
+        run: |
+          pip install -e . --no-deps
+
+      - name: Compile sources
+        shell: bash -el {0}
+        run: |
+          python -m compileall src
+
+      - name: Run tests
+        shell: bash -el {0}
+        run: |
+          pytest
+
+      - name: Ruff
+        shell: bash -el {0}
+        run: |
+          ruff check .
+
+      - name: Mypy
+        shell: bash -el {0}
+        run: |
+          mypy src/celnn/core/network.py src/celnn/core/simulation.py src/celnn/core/solvers.py

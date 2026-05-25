@@ -20,7 +20,6 @@ class SimulationConfig:
     solver: str = "euler"
     return_trajectory: bool = False
     store_every: int = 1
-    dtype: Any | None = None
     stability_checks: bool = True
     progress: bool = False
 
@@ -63,7 +62,6 @@ class SimulationConfig:
             "solver": self.solver,
             "return_trajectory": self.return_trajectory,
             "store_every": self.store_every,
-            "dtype": None if self.dtype is None else np.dtype(self.dtype).name,
             "stability_checks": self.stability_checks,
             "progress": self.progress,
         }
@@ -78,7 +76,6 @@ class SimulationConfig:
             solver=data.get("solver", "euler"),
             return_trajectory=bool(data.get("return_trajectory", False)),
             store_every=int(data.get("store_every", 1)),
-            dtype=data.get("dtype"),
             stability_checks=bool(data.get("stability_checks", True)),
             progress=bool(data.get("progress", False)),
         )

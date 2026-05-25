@@ -53,3 +53,17 @@ def test_network_and_config_serialization_roundtrip(tmp_path):
 
     config = SimulationConfig(t_end=2.0, dt=0.1, return_trajectory=True)
     assert SimulationConfig.from_dict(config.to_dict()) == config
+
+
+def test_network_from_dict_accepts_legacy_state_shape_field():
+    signal = np.ones(5)
+    net = CellularNetwork(
+        input=signal,
+        feedback=[0.0, 0.0, 0.0],
+        control=[0.0, 1.0, 0.0],
+        activation="identity",
+    )
+    serialized = net.to_dict()
+    serialized["state_shape"] = [5]
+    restored = CellularNetwork.from_dict(serialized)
+    assert restored.state.shape == signal.shape

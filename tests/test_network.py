@@ -16,10 +16,10 @@ def test_network_creation_defaults():
     assert net.backend.name == "numpy"
 
 
-def test_network_rejects_mismatched_state_shape():
+def test_network_rejects_mismatched_initial_state_shape():
     signal = np.ones(8)
     with pytest.raises(ShapeMismatchError):
-        CellularNetwork(input=signal, state_shape=(4,))
+        CellularNetwork(input=signal, initial_state=np.zeros(4))
 
 
 def test_from_template_uses_template_fields():
@@ -61,6 +61,23 @@ def test_run_returns_result():
     assert result.state.shape == signal.shape
     assert result.output.shape == signal.shape
     assert result.metadata["backend"] == "numpy"
+
+
+def test_run_returns_stability_warning_without_mutating_network_metadata():
+    signal = np.ones(5)
+    net = CellularNetwork(
+        input=signal,
+        feedback=[0.0, 0.0, 0.0],
+        control=[0.0, 1.0, 0.0],
+        activation="identity",
+        metadata={"source": "test"},
+    )
+    result = net.run(SimulationConfig(t_end=2.0, dt=1.1))
+    assert "warnings" in result.metadata
+    assert result.metadata["warnings"] == [
+        "dt > 1.0 may be numerically unstable for explicit schemes."
+    ]
+    assert net.metadata == {"source": "test"}
 
 
 def test_network_accepts_auto_device():

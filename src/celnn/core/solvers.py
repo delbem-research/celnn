@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -15,19 +16,21 @@ if TYPE_CHECKING:
 
 
 def solve(
-    network: "CellularNetwork", config: "SimulationConfig"
+    network: "CellularNetwork",
+    config: "SimulationConfig",
+    warnings: list[str] | None = None,
 ) -> SimulationResult:
     """Solve a cellular network trajectory using the configured method."""
     if config.solver == "euler":
-        return _solve_euler(network, config)
+        return _solve_euler(network, config, warnings=warnings)
     if config.solver in {
         "semi_implicit_euler",
         "semi-implicit-euler",
         "semi_implicit",
     }:
-        return _solve_semi_implicit_euler(network, config)
+        return _solve_semi_implicit_euler(network, config, warnings=warnings)
     if config.solver == "solve_ivp":
-        return _solve_ivp(network, config)
+        return _solve_ivp(network, config, warnings=warnings)
     raise SolverError(
         f"Unknown solver '{config.solver}'. Expected "
         "'euler', 'semi_implicit_euler', or 'solve_ivp'."
@@ -58,15 +61,10 @@ def _store_result(
     trajectory_state: list[np.ndarray] | None,
     trajectory_output: list[np.ndarray] | None,
     previous_state: np.ndarray,
+    warnings: list[str] | None = None,
 ) -> SimulationResult:
     final_output = network.output(state)
-    metadata = {
-        "solver": network._last_solver,
-        "boundary": network.boundary,
-        "backend": network.backend.name,
-        "device": network.device,
-        "shape": state.shape,
-    }
+    metadata = _base_metadata(network, state=state, warnings=warnings)
     if trajectory_state is not None and trajectory_output is not None:
         time_array = np.asarray(times, dtype=float)
         return SimulationResult(
@@ -88,41 +86,21 @@ def _store_result(
 
 
 def _solve_euler(
-    network: "CellularNetwork", config: "SimulationConfig"
+    network: "CellularNetwork",
+    config: "SimulationConfig",
+    warnings: list[str] | None = None,
 ) -> SimulationResult:
-    times = config.time_points()
-    state = network.state.copy()
-    previous_state = state.copy()
-    trajectory_state: list[np.ndarray] | None = (
-        [] if config.return_trajectory else None
-    )
-    trajectory_output: list[np.ndarray] | None = (
-        [] if config.return_trajectory else None
-    )
-    stored_times: list[float] = []
-
-    if config.return_trajectory:
-        trajectory_state.append(state.copy())
-        trajectory_output.append(network.output(state))
-        stored_times.append(float(times[0]))
-
-    total_steps = max(len(times) - 1, 1)
-    for index in range(1, len(times)):
-        dt = float(times[index] - times[index - 1])
-        previous_state = state.copy()
-        state = state + dt * network.derivative(state)
-        _maybe_print_progress(config, index, total_steps)
-        if config.return_trajectory and (
-            index % config.store_every == 0 or index == len(times) - 1
-        ):
-            trajectory_state.append(state.copy())
-            trajectory_output.append(network.output(state))
-            stored_times.append(float(times[index]))
-
-    network.state = state.copy()
-    network._last_solver = "euler"
-    result_times = (
-        stored_times if config.return_trajectory else [float(times[-1])]
+    (
+        state,
+        previous_state,
+        trajectory_state,
+        trajectory_output,
+        result_times,
+    ) = _solve_time_marching(
+        network=network,
+        config=config,
+        solver_name="euler",
+        advance=lambda state, dt: state + dt * network.derivative(state),
     )
     return _store_result(
         network,
@@ -131,12 +109,68 @@ def _solve_euler(
         trajectory_state,
         trajectory_output,
         previous_state,
+        warnings=warnings,
     )
 
 
 def _solve_semi_implicit_euler(
-    network: "CellularNetwork", config: "SimulationConfig"
+    network: "CellularNetwork",
+    config: "SimulationConfig",
+    warnings: list[str] | None = None,
 ) -> SimulationResult:
+    (
+        state,
+        previous_state,
+        trajectory_state,
+        trajectory_output,
+        result_times,
+    ) = _solve_time_marching(
+        network=network,
+        config=config,
+        solver_name="semi_implicit_euler",
+        advance=lambda state, dt: (state + dt * network.drive(state))
+        / (1.0 + dt),
+    )
+    return _store_result(
+        network,
+        state,
+        result_times,
+        trajectory_state,
+        trajectory_output,
+        previous_state,
+        warnings=warnings,
+    )
+
+
+def _base_metadata(
+    network: "CellularNetwork",
+    state: np.ndarray,
+    warnings: list[str] | None = None,
+) -> dict[str, object]:
+    metadata: dict[str, object] = {
+        "solver": network._last_solver,
+        "boundary": network.boundary,
+        "backend": network.backend.name,
+        "device": network.device,
+        "shape": state.shape,
+    }
+    if warnings:
+        metadata["warnings"] = list(warnings)
+    return metadata
+
+
+def _solve_time_marching(
+    network: "CellularNetwork",
+    config: "SimulationConfig",
+    solver_name: str,
+    advance: Callable[[np.ndarray, float], np.ndarray],
+) -> tuple[
+    np.ndarray,
+    np.ndarray,
+    list[np.ndarray] | None,
+    list[np.ndarray] | None,
+    list[float],
+]:
     times = config.time_points()
     state = network.state.copy()
     previous_state = state.copy()
@@ -149,6 +183,8 @@ def _solve_semi_implicit_euler(
     stored_times: list[float] = []
 
     if config.return_trajectory:
+        assert trajectory_state is not None
+        assert trajectory_output is not None
         trajectory_state.append(state.copy())
         trajectory_output.append(network.output(state))
         stored_times.append(float(times[0]))
@@ -157,36 +193,36 @@ def _solve_semi_implicit_euler(
     for index in range(1, len(times)):
         dt = float(times[index] - times[index - 1])
         previous_state = state.copy()
-        drive = network.drive(state)
-        state = (state + dt * drive) / (1.0 + dt)
+        state = advance(state, dt)
         _maybe_print_progress(config, index, total_steps)
         if config.return_trajectory and (
             index % config.store_every == 0 or index == len(times) - 1
         ):
+            assert trajectory_state is not None
+            assert trajectory_output is not None
             trajectory_state.append(state.copy())
             trajectory_output.append(network.output(state))
             stored_times.append(float(times[index]))
 
     network.state = state.copy()
-    network._last_solver = "semi_implicit_euler"
-    result_times = (
-        stored_times if config.return_trajectory else [float(times[-1])]
-    )
-    return _store_result(
-        network,
+    network._last_solver = solver_name
+    result_times = stored_times if config.return_trajectory else [times[-1]]
+    return (
         state,
-        result_times,
+        previous_state,
         trajectory_state,
         trajectory_output,
-        previous_state,
+        [float(point) for point in result_times],
     )
 
 
 def _solve_ivp(
-    network: "CellularNetwork", config: "SimulationConfig"
+    network: "CellularNetwork",
+    config: "SimulationConfig",
+    warnings: list[str] | None = None,
 ) -> SimulationResult:
     try:
-        from scipy.integrate import solve_ivp
+        from scipy.integrate import solve_ivp  # type: ignore[import-untyped]
     except ImportError as exc:  # pragma: no cover - depends on environment
         raise OptionalDependencyError(
             "The 'solve_ivp' solver requires SciPy. "
@@ -233,11 +269,9 @@ def _solve_ivp(
             time=np.asarray(stored_times, dtype=float),
             trajectory_state=np.stack(stored_states, axis=0),
             trajectory_output=np.stack(stored_outputs, axis=0),
-            metadata={
-                "solver": "solve_ivp",
-                "boundary": network.boundary,
-                "shape": final_state.shape,
-            },
+            metadata=_base_metadata(
+                network, state=final_state, warnings=warnings
+            ),
             convergence=_convergence_info(final_state, previous_state),
         )
 
@@ -245,10 +279,6 @@ def _solve_ivp(
         state=final_state.copy(),
         output=network.output(final_state),
         time=np.asarray([float(sol.t[-1])], dtype=float),
-        metadata={
-            "solver": "solve_ivp",
-            "boundary": network.boundary,
-            "shape": final_state.shape,
-        },
+        metadata=_base_metadata(network, state=final_state, warnings=warnings),
         convergence=_convergence_info(final_state, previous_state),
     )

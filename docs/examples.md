@@ -14,7 +14,6 @@ u = load_grayscale("input.png")
 
 net = CellularNetwork(
     input=u,
-    state_shape=u.shape,
     feedback=EDGE_DETECTION.feedback,
     control=EDGE_DETECTION.control,
     bias=EDGE_DETECTION.bias,
@@ -37,7 +36,6 @@ signal = np.sin(np.linspace(0, 8 * np.pi, 512))
 
 net = CellularNetwork(
     input=signal,
-    state_shape=signal.shape,
     feedback=np.array([0.2, 1.0, 0.2]),
     control=np.array([0.1, 0.8, 0.1]),
     bias=0.0,

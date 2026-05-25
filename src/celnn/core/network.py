@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from copy import deepcopy
 from typing import Any
 
 import numpy as np
 
-from ..backends import ArrayBackend, get_backend
+from ..backends import get_backend
 from .activations import activation_name, resolve_activation
 from .boundary import normalize_boundary_mode
 from .dynamics import derivative as compute_derivative
@@ -21,9 +22,7 @@ from .topology import RegularGridTopology
 from .validation import (
     coerce_ndarray,
     ensure_broadcastable,
-    infer_state_shape,
     validate_initial_state,
-    validate_state_shape,
 )
 
 
@@ -33,7 +32,6 @@ class CellularNetwork:
     def __init__(
         self,
         input: Any,
-        state_shape: tuple[int, ...] | None = None,
         initial_state: Any | None = None,
         feedback: Any | None = None,
         control: Any | None = None,
@@ -43,13 +41,11 @@ class CellularNetwork:
         boundary_value: float = 0.0,
         dtype: Any | None = None,
         device: str = "cpu",
-        backend: ArrayBackend | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
         input_dtype = dtype if dtype is not None else float
         self.input = coerce_ndarray(input, dtype=input_dtype, name="input")
-        self.state_shape = infer_state_shape(self.input, state_shape)
-        validate_state_shape(self.state_shape, tuple(self.input.shape))
+        self.state_shape = tuple(self.input.shape)
 
         self.topology = RegularGridTopology(
             shape=self.state_shape,
@@ -61,7 +57,7 @@ class CellularNetwork:
         self.dtype = np.dtype(dtype or float)
         self.metadata = deepcopy(metadata) if metadata is not None else {}
         self.device = device.lower().strip()
-        self.backend = backend if backend is not None else get_backend(device)
+        self.backend = get_backend(device)
 
         self.feedback = self._resolve_template_array(
             value=feedback,
@@ -93,7 +89,10 @@ class CellularNetwork:
         self._last_solver = "euler"
 
     def _resolve_template_array(
-        self, value: Any | None, default, name: str
+        self,
+        value: Any | None,
+        default: Callable[[], Any],
+        name: str,
     ) -> np.ndarray:
         if value is None:
             return np.asarray(default(), dtype=self.dtype)
@@ -105,14 +104,12 @@ class CellularNetwork:
         template: Template,
         input: Any,
         *,
-        state_shape: tuple[int, ...] | None = None,
         initial_state: Any | None = None,
         activation: str | Any = "piecewise_linear",
         boundary: str = "constant",
         boundary_value: float = 0.0,
         dtype: Any | None = None,
         device: str = "cpu",
-        backend: ArrayBackend | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> "CellularNetwork":
         """Construct a network from a reusable template."""
@@ -128,7 +125,6 @@ class CellularNetwork:
         combined_metadata.setdefault("template_name", template.name)
         return cls(
             input=input,
-            state_shape=state_shape,
             initial_state=chosen_initial_state,
             feedback=template.feedback,
             control=template.control,
@@ -138,7 +134,6 @@ class CellularNetwork:
             boundary_value=boundary_value,
             dtype=dtype,
             device=device,
-            backend=backend,
             metadata=combined_metadata,
         )
 
@@ -200,27 +195,12 @@ class CellularNetwork:
     ) -> SimulationResult:
         """Run the simulation and return a result object."""
         chosen_config = config if config is not None else SimulationConfig()
-        if (
-            chosen_config.dtype is not None
-            and np.dtype(chosen_config.dtype) != self.dtype
-        ):
-            self.input = self.input.astype(chosen_config.dtype, copy=False)
-            self.bias = self.bias.astype(chosen_config.dtype, copy=False)
-            self.feedback = self.feedback.astype(
-                chosen_config.dtype, copy=False
-            )
-            self.control = self.control.astype(chosen_config.dtype, copy=False)
-            self.state = self.state.astype(chosen_config.dtype, copy=False)
-            self._initial_state = self._initial_state.astype(
-                chosen_config.dtype, copy=False
-            )
-            self.dtype = np.dtype(chosen_config.dtype)
-
+        warnings: list[str] = []
         if chosen_config.stability_checks and chosen_config.dt > 1.0:
-            self.metadata.setdefault("warnings", []).append(
+            warnings.append(
                 "dt > 1.0 may be numerically unstable for explicit schemes."
             )
-        return solve(self, chosen_config)
+        return solve(self, chosen_config, warnings=warnings)
 
     def reset(self, initial_state: Any | None = None) -> None:
         """Reset the internal state."""
@@ -245,7 +225,6 @@ class CellularNetwork:
             )
         return {
             "input": self.input.tolist(),
-            "state_shape": list(self.state_shape),
             "initial_state": self._initial_state.tolist(),
             "current_state": self.state.tolist(),
             "feedback": self.feedback.tolist(),
@@ -265,7 +244,6 @@ class CellularNetwork:
         """Restore a network from a serialized dictionary."""
         network = cls(
             input=data["input"],
-            state_shape=tuple(data.get("state_shape", [])) or None,
             initial_state=data.get("initial_state"),
             feedback=data.get("feedback"),
             control=data.get("control"),

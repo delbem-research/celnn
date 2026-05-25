@@ -39,7 +39,6 @@ def main(argv: list[str]) -> int:
 
     net = CellularNetwork(
         input=u,
-        state_shape=u.shape,
         feedback=EDGE_DETECTION.feedback,
         control=EDGE_DETECTION.control,
         bias=EDGE_DETECTION.bias,
