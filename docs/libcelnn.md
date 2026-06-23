@@ -14,8 +14,14 @@ Optional extras:
 pip install celnn[scipy]
 pip install celnn[image]
 pip install celnn[viz]
+pip install celnn[ga]
 pip install celnn[all]
 ```
+
+The ``ga`` extra pulls in
+[DEAP](https://deap.readthedocs.io/en/master/), which is required to run
+the genetic-algorithm-based template trainer in
+:mod:`celnn.training`.
 
 ## Package structure
 
@@ -25,6 +31,7 @@ celnn/
   backends/        backend protocol and NumPy implementation
   domains/         image, signal, and grid utilities
   templates/       built-in templates and registry
+  training/        genetic-algorithm-based template training (DEAP)
   io/              JSON serialization helpers
   visualization/   optional plotting helpers
   utils/           small shared utilities
@@ -363,10 +370,78 @@ See [docs/examples.md](examples.md) and the `examples/` directory for:
 - custom template simulation,
 - reaction-diffusion-like pattern experiments,
 - custom activations,
-- template registry usage.
+- template registry usage,
+- genetic-algorithm template training (DEAP).
 
 For a step-by-step guide on creating new templates for new tasks, see
 [docs/template-creation-guide.md](template-creation-guide.md).
+
+## Training templates with a genetic algorithm
+
+`celnn.training` provides a small genetic-algorithm (GA) trainer,
+powered by [DEAP](https://deap.readthedocs.io/en/master/), that searches
+for the feedback, control, and bias coefficients of a CelNN template
+that best fit a dataset of (input, target) pairs.
+
+```bash
+pip install celnn[ga]
+```
+
+```python
+import numpy as np
+from celnn import SimulationConfig
+from celnn.templates import Template
+from celnn.training import GAConfig, GATrainer, TrainingDataset
+
+template = Template(
+    name="identity_seed",
+    feedback=[0.0, 1.0, 0.0],
+    control=[0.0, 1.0, 0.0],
+    bias=0.0,
+)
+
+u1 = np.linspace(-1.0, 1.0, 16)
+u2 = np.sin(np.linspace(0.0, 2.0 * np.pi, 16))
+dataset = TrainingDataset.from_pairs([u1, u2], [u1.copy(), u2.copy()])
+
+trainer = GATrainer(
+    template=template,
+    dataset=dataset,
+    config=SimulationConfig(t_end=5.0, dt=0.1, solver="euler"),
+    ga_config=GAConfig(
+        pop_size=20,
+        n_generations=15,
+        bounds=(-1.0, 1.0),
+        bias_bounds=(-0.5, 0.5),
+        seed_template=template,
+    ),
+    activation="identity",
+    boundary="reflect",
+    seed=42,
+)
+
+result = trainer.run()
+print(result.best_fitness)
+print(result.fitness_history)
+print(result.best_template.feedback)
+```
+
+Key configuration knobs:
+
+- `pop_size` and `n_generations`: population size and number of
+  generations. Larger values improve the search at the cost of more
+  simulation runs.
+- `bounds` / `bias_bounds`: inclusive `(low, high)` ranges for the
+  feedback/control coefficients and for the bias term.
+- `mut_sigma`: a single float (shared by all genes) or a 2-tuple
+  `(sigma_feedback, sigma_control_bias)` for per-segment mutation.
+- `regularization`: multiplies an L2 penalty on the candidate
+  coefficients to favor smaller, often more stable, templates.
+- `seed_template`: optional initial template whose coefficients seed
+  the first individual of the population.
+
+A runnable demonstration is available in
+[`examples/genetic_algorithm_training.py`](../examples/genetic_algorithm_training.py).
 
 ## FAQ
 

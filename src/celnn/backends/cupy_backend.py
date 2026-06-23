@@ -95,12 +95,17 @@ class CuPyBackend:
         if os.environ.get("CUDA_PATH"):
             return
         for package_dir in site.getsitepackages():
-            candidate = Path(package_dir) / "nvidia" / "cuda_nvrtc"
+            nvidia_dir = Path(package_dir) / "nvidia"
+            runtime_candidate = nvidia_dir / "cuda_runtime"
+            if (runtime_candidate / "include" / "cuda.h").exists():
+                os.environ["CUDA_PATH"] = str(runtime_candidate)
+                return
+            nvrtc_candidate = nvidia_dir / "cuda_nvrtc"
             if (
-                (candidate / "include").exists()
-                and any((candidate / "lib").glob("libnvrtc.so*"))
+                (nvrtc_candidate / "include" / "cuda.h").exists()
+                and any((nvrtc_candidate / "lib").glob("libnvrtc.so*"))
             ):
-                os.environ["CUDA_PATH"] = str(candidate)
+                os.environ["CUDA_PATH"] = str(nvrtc_candidate)
                 return
 
     def _aggregate_1d(self, array, kernel, *, mode: str, cval: float):

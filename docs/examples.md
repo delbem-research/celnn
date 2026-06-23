@@ -133,3 +133,43 @@ template = Template(
 data = template.to_dict()
 restored = Template.from_dict(data)
 ```
+
+## 7. Genetic-algorithm template training (DEAP)
+
+```python
+import numpy as np
+from celnn import SimulationConfig
+from celnn.templates import Template
+from celnn.training import GAConfig, GATrainer, TrainingDataset
+
+template = Template(
+    name="smoothing_seed",
+    feedback=[0.05, 0.1, 0.05],
+    control=[0.0, 1.0, 0.0],
+    bias=0.0,
+)
+
+inputs = [np.linspace(-1.0, 1.0, 32), np.sin(np.linspace(0.0, 2.0 * np.pi, 32))]
+targets = [np.convolve(u, np.ones(5) / 5.0, mode="same") for u in inputs]
+dataset = TrainingDataset.from_pairs(inputs, targets)
+
+trainer = GATrainer(
+    template=template,
+    dataset=dataset,
+    config=SimulationConfig(t_end=5.0, dt=0.1, solver="euler"),
+    ga_config=GAConfig(
+        pop_size=20,
+        n_generations=10,
+        bounds=(-1.0, 1.0),
+        bias_bounds=(-0.5, 0.5),
+        seed_template=template,
+    ),
+    activation="identity",
+    boundary="reflect",
+    seed=42,
+)
+
+result = trainer.run()
+print(result.best_fitness)
+print(result.best_template.feedback)
+```

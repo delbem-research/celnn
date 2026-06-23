@@ -27,6 +27,12 @@ For GPU execution through CuPy/CUDA:
 pip install celnn[gpu]
 ```
 
+For genetic-algorithm-based template training (powered by DEAP):
+
+```bash
+pip install celnn[ga]
+```
+
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 
@@ -87,6 +93,7 @@ print(result.output.shape)
 * Built-in activation functions, boundary modes, and solver options.
 * Optional CuPy/CUDA backend for GPU local stencil aggregation.
 * Optional image, signal, grid, serialization, and visualization helpers.
+* Optional genetic-algorithm-based template trainer (DEAP).
 * Demonstrative built-in templates for image processing, logic, diffusion, and pattern formation.
 * Tests, examples, and technical documentation aimed at research and experimentation.
 

@@ -1,0 +1,23 @@
+@aicp v=semver:0.3.0 id=libpycelnn kind=python-library summary="celnn: Cellular Neural Network (CelNN) simulation library with templates, optional CuPy GPU backend, and DEAP-based genetic-algorithm template training"
+@stack lang=set[enum]:[python] runtime=set[enum]:[cpython>=3.10] infra=set[enum]:[conda,pip] package=list[path]:[pyproject.toml,environment.yml] lock=list[path]:[]
+@agent read=list[atom]:[@aicp,@stack,@mod,@surface,@resolver,@inv,@task] verify=bool:true update_on_arch_change=bool:true max_context_ratio=float:0.05 mode=guided
+@avoid paths=list[glob]:[**/__pycache__/**,dist/**,build/**,.pytest_cache/**,htmlcov/**]
+@cmd test "pytest"
+@cmd lint "ruff check ."
+@mod core kind=core owns=set[id]:[network,simulation,templates,solvers,dynamics,boundary,validation] entry=list[path]:[src/celnn/core/network.py,src/celnn/core/simulation.py,src/celnn/core/templates.py] risk=set[enum]:[numerical-stability] test=list[path]:[tests/] evidence=list[path]:[src/celnn/core/]
+@mod backends kind=infra owns=set[id]:[numpy-backend,cupy-backend] entry=list[path]:[src/celnn/backends/numpy_backend.py,src/celnn/backends/cupy_backend.py,src/celnn/backends/protocol.py] risk=set[enum]:[optional-dependency,gpu-environment] evidence=list[path]:[src/celnn/backends/]
+@mod training kind=lib owns=set[id]:[ga-trainer,fitness,dataset] entry=list[path]:[src/celnn/training/ga.py,src/celnn/training/fitness.py,src/celnn/training/dataset.py] risk=set[enum]:[optional-dependency] test=list[path]:[tests/test_ga_training.py] evidence=list[path]:[src/celnn/training/,examples/genetic_algorithm_training.py]
+@mod templates kind=lib owns=set[id]:[template-registry,builtin-templates] entry=list[path]:[src/celnn/templates/registry.py] evidence=list[path]:[src/celnn/templates/]
+@mod domains kind=lib owns=set[id]:[grid,image,signal] entry=list[path]:[src/celnn/domains/] evidence=list[path]:[src/celnn/domains/]
+@mod docs kind=docs owns=set[id]:[technical-docs,examples-docs] entry=list[path]:[docs/libcelnn.md,docs/examples.md] evidence=list[path]:[docs/]
+@surface ga-trainer owner=mod.training kind=class visibility=public name="celnn.training.GATrainer" evidence=list[path]:[src/celnn/training/ga.py]
+@surface ga-config owner=mod.training kind=dataclass visibility=public name="celnn.training.GAConfig" evidence=list[path]:[src/celnn/training/ga.py]
+@surface training-dataset owner=mod.training kind=dataclass visibility=public name="celnn.training.TrainingDataset" evidence=list[path]:[src/celnn/training/dataset.py]
+@resolver edit-training target=mod.training intent=edit go=list[path]:[src/celnn/training/ga.py,src/celnn/training/fitness.py,src/celnn/training/dataset.py,tests/test_ga_training.py] use=list[enum]:[search,tests] verify=list[string]:["pytest tests/test_ga_training.py"]
+@inv ga-minimization scope=set[id]:[mod.training] rule="GA fitness is minimized (DEAP FitnessMin weights=(-1.0,)); lower fitness is better" evidence=list[path]:[src/celnn/training/ga.py]
+@inv ga-optional-dep scope=set[id]:[mod.training] rule="DEAP is an optional dependency (extra 'ga'); imports must stay lazy via _try_import_deap" evidence=list[path]:[src/celnn/training/ga.py,pyproject.toml]
+@inv fitness-guard scope=set[id]:[mod.training] rule="evaluate_template returns max_loss=1e12 for failed/non-finite simulations to keep the GA stable" evidence=list[path]:[src/celnn/training/fitness.py]
+@inv ga-determinism scope=set[id]:[mod.training] rule="GATrainer.run() must seed the global random module when seed is set: DEAP operators (selTournament, cxTwoPoint) draw from it; same seed => identical results" evidence=list[path]:[src/celnn/training/ga.py,tests/test_ga_training.py]
+@task ga-presentation status=done touch=list[path]:[slides/] note="PPTX presentation with real experiment figures (slides/run_ga_experiments.py generates assets; slides/build_ga_slides.py builds the deck)"
+@policy require-tests scope=global severity=high rule="changed modules must run matching tests" enforce=list[id]:[ci]
+@risk stale-context level=medium scope=set[id]:[global] mitigation="update AICP when architecture, contracts, surfaces, invariants, dependencies, risks, tasks, or resolvers change"
