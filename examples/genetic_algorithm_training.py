@@ -8,11 +8,15 @@ from celnn.training import GAConfig, GATrainer, TrainingDataset
 
 SHOW_GENERATIONS = True
 
+
 def _format_genome(template: Template) -> str:
     a = np.asarray(template.feedback, dtype=float).ravel()
     b = np.asarray(template.control, dtype=float).ravel()
     z = float(np.asarray(template.bias, dtype=float).reshape(-1)[0])
-    fmt = lambda v: "[" + " ".join(f"{x:+.3f}" for x in v) + "]"
+
+    def fmt(values: np.ndarray) -> str:
+        return "[" + " ".join(f"{value:+.3f}" for value in values) + "]"
+
     return f"A={fmt(a)}  B={fmt(b)}  z={z:+.3f}"
 
 
@@ -21,7 +25,12 @@ def print_generations(result) -> None:
     print("Evolução geração a geração (melhor indivíduo):")
     print(f"{'ger':>4}  {'melhor':>10}  {'média':>10}  genoma")
     for gen, (best_fit, mean_fit) in enumerate(
-        zip(result.fitness_history, result.mean_fitness_history), start=1
+        zip(
+            result.fitness_history,
+            result.mean_fitness_history,
+            strict=True,
+        ),
+        start=1,
     ):
         genome = _format_genome(result.best_per_generation[gen - 1])
         print(f"{gen:>4}  {best_fit:>10.6f}  {mean_fit:>10.6f}  {genome}")

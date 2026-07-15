@@ -8,7 +8,8 @@ until you fill the GPU:
 
     CELNN_DEVICE     execution device: auto | gpu | cuda | cpu  (default auto)
     CELNN_GRID_SIZE  side length N of the NxN grid               (default 8192)
-    CELNN_DTYPE      float32 | float64                           (default float32)
+    CELNN_DTYPE      float32 | float64
+                    (default float32)
     CELNN_T_END      integration end time                        (default 5.0)
     CELNN_DT         integration step                            (default 0.1)
     CELNN_WARMUP     1 to run one untimed warm-up first          (default 1)
@@ -78,7 +79,11 @@ def _synchronize() -> None:
 def main() -> int:
     device = _env("CELNN_DEVICE", "auto")
     size = int(_env("CELNN_GRID_SIZE", "8192"))
-    dtype = np.float64 if _env("CELNN_DTYPE", "float32") == "float64" else np.float32
+    dtype = (
+        np.float64
+        if _env("CELNN_DTYPE", "float32") == "float64"
+        else np.float32
+    )
     t_end = float(_env("CELNN_T_END", "5.0"))
     dt = float(_env("CELNN_DT", "0.1"))
     warmup = _env("CELNN_WARMUP", "1") == "1"
