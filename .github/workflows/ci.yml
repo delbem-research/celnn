@@ -23,7 +23,7 @@ jobs:
       - name: Install package
         shell: bash -el {0}
         run: |
-          pip install -e . --no-deps
+          pip install -e ".[torch]"
 
       - name: Compile sources
         shell: bash -el {0}

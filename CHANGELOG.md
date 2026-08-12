@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Added the optional `torch` extra and the top-level
+  `celnn.DifferentiableCellularNetwork` API for learnable or frozen templates,
+  multistep backpropagation, diagonal multichannel states, and conversion to
+  and from classical one-dimensional `Template` objects.
+- Reused the canonical CelNN dynamics, activation functions, stencil
+  aggregation, boundary semantics, and integration formulas across NumPy,
+  CuPy, and PyTorch execution paths.
+
 ## 0.1.0 - 2026-04-24
 
 - Initial `celnn` package scaffold.

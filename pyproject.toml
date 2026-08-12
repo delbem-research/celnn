@@ -49,6 +49,7 @@ gpu = [
 image = ["pillow>=10.0"]
 viz = ["matplotlib>=3.8"]
 ga = ["deap>=1.4"]
+torch = ["torch>=2.2"]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",

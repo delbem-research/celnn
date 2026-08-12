@@ -5,21 +5,24 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+import celnn
 from celnn import CellularNetwork, SimulationConfig
 from celnn.core.templates import Template
 
 torch = pytest.importorskip("torch", reason="PyTorch is optional")
-celnn_torch = pytest.importorskip(
-    "celnn.torch", reason="celnn.torch is not implemented yet"
-)
-
-DifferentiableCellularNetwork = celnn_torch.DifferentiableCellularNetwork
+DifferentiableCellularNetwork = celnn.DifferentiableCellularNetwork
 
 FEEDBACK = [0.2, -0.3, 1.0, -0.3, 0.2]
 CONTROL = [0.1, 0.2, 0.6, 0.2, 0.1]
 BIAS = 0.05
 DT = 0.1
 STEPS = 15
+
+
+def test_differentiable_network_is_part_of_the_top_level_api():
+    from celnn import DifferentiableCellularNetwork as PublicNetwork
+
+    assert PublicNetwork is DifferentiableCellularNetwork
 
 
 def _template(name: str = "probe") -> Template:

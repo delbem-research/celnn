@@ -33,6 +33,12 @@ For genetic-algorithm-based template training (powered by DEAP):
 pip install celnn[ga]
 ```
 
+For differentiable templates and backpropagation through CelNN evolution:
+
+```bash
+pip install "celnn[torch]"
+```
+
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 
@@ -85,6 +91,7 @@ print(result.output.shape)
 * [Template design guide](docs/template-design.md)
 * [Template creation guide](docs/template-creation-guide.md)
 * [Migration from PyCNN](docs/migration-from-pycnn.md)
+* [Differentiable network and PyTorch usage](docs/differentiable-network.md)
 
 ## Features
 
@@ -94,6 +101,7 @@ print(result.output.shape)
 * Optional CuPy/CUDA backend for GPU local stencil aggregation.
 * Optional image, signal, grid, serialization, and visualization helpers.
 * Optional genetic-algorithm-based template trainer (DEAP).
+* Optional `DifferentiableCellularNetwork` with learnable PyTorch templates.
 * Demonstrative built-in templates for image processing, logic, diffusion, and pattern formation.
 * Tests, examples, and technical documentation aimed at research and experimentation.
 

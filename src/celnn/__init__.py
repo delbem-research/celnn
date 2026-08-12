@@ -1,5 +1,7 @@
 """Top-level package for celnn."""
 
+from typing import Any
+
 from .activations import (
     identity,
     piecewise_linear,
@@ -15,8 +17,18 @@ from .core.simulation import SimulationConfig
 from .core.templates import Template
 from .templates.registry import TemplateRegistry
 
+
+def __getattr__(name: str) -> Any:
+    """Expose the differentiable network lazily so torch stays optional."""
+    if name == "DifferentiableCellularNetwork":
+        from .differentiable import DifferentiableCellularNetwork
+
+        return DifferentiableCellularNetwork
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 __all__ = [
     "CellularNetwork",
+    "DifferentiableCellularNetwork",
     "SimulationConfig",
     "SimulationResult",
     "Template",
