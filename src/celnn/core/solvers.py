@@ -9,6 +9,7 @@ import numpy as np
 
 from .exceptions import OptionalDependencyError, SolverError
 from .result import SimulationResult
+from .steppers import euler_step, semi_implicit_euler_step
 
 if TYPE_CHECKING:
     from .network import CellularNetwork
@@ -100,7 +101,9 @@ def _solve_euler(
         network=network,
         config=config,
         solver_name="euler",
-        advance=lambda state, dt: state + dt * network.derivative(state),
+        advance=lambda state, dt: euler_step(
+            state, dt, network.derivative(state)
+        ),
     )
     return _store_result(
         network,
@@ -128,8 +131,9 @@ def _solve_semi_implicit_euler(
         network=network,
         config=config,
         solver_name="semi_implicit_euler",
-        advance=lambda state, dt: (state + dt * network.drive(state))
-        / (1.0 + dt),
+        advance=lambda state, dt: semi_implicit_euler_step(
+            state, dt, network.drive(state)
+        ),
     )
     return _store_result(
         network,
