@@ -5,15 +5,16 @@ from __future__ import annotations
 import os
 import site
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 
-from ..core.boundary import normalize_boundary_mode
+from ..core.boundary import pad_kwargs, scipy_mode
 from ..core.exceptions import BackendError
+from .stencil import StencilBackend
 
 
-class CuPyBackend:
+class CuPyBackend(StencilBackend):
     """Backend implementation for CuPy/CUDA arrays.
 
     The public `celnn` API still returns NumPy arrays. This backend moves
@@ -41,29 +42,49 @@ class CuPyBackend:
             return False
         return True
 
-    def aggregate_local(
+    def _prepare(self, value: Any) -> Any:
+        return self.cp.asarray(value, dtype=self.cp.float64)
+
+    def _zeros_like(self, array: Any) -> Any:
+        return self.cp.zeros_like(array, dtype=self.cp.float64)
+
+    def _pad(
         self,
-        values: np.ndarray,
-        weights: np.ndarray,
+        array: Any,
+        axes: Sequence[int],
+        radii: Sequence[int],
         *,
         mode: str,
-        cval: float = 0.0,
-    ) -> np.ndarray:
-        """Aggregate local neighborhoods using GPU stencil operations."""
-        array = self.cp.asarray(values, dtype=self.cp.float64)
-        kernel = self.cp.asarray(weights, dtype=self.cp.float64)
-        if array.ndim != kernel.ndim:
-            raise BackendError(
-                "Input and template dimensionality must match "
-                "for local aggregation. "
-                f"Got array ndim={array.ndim}, weights ndim={kernel.ndim}."
-            )
-        if array.ndim == 1:
-            result = self._aggregate_1d(array, kernel, mode=mode, cval=cval)
-        elif array.ndim == 2:
-            result = self._aggregate_2d(array, kernel, mode=mode, cval=cval)
-        else:
-            result = self._aggregate_nd(array, kernel, mode=mode, cval=cval)
+        cval: float,
+    ) -> Any:
+        widths = [(0, 0)] * array.ndim
+        for position, axis in enumerate(axes):
+            widths[axis] = (radii[position], radii[position])
+        return self.cp.pad(array, widths, **pad_kwargs(mode, cval))
+
+    def _fast_path(
+        self, array: Any, kernel: Any, *, mode: str, cval: float
+    ) -> Any | None:
+        """Use cupyx convolution for ND, where the Python loop is costly.
+
+        1D and 2D keep the shared stencil, which the stubbed-runtime tests
+        compare against the NumPy backend mode by mode.
+        """
+        if array.ndim <= 2:
+            return None
+        try:
+            from cupyx.scipy.ndimage import convolve
+        except ImportError:  # pragma: no cover - optional branch
+            return None
+        return convolve(
+            array,
+            self.cp.flip(kernel),
+            mode=scipy_mode(mode),
+            cval=float(cval),
+        )
+
+    def _finalize(self, result: Any) -> np.ndarray:
+        """Bring the result back to the host; the public API returns NumPy."""
         return np.asarray(self.cp.asnumpy(result), dtype=float)
 
     @classmethod
@@ -151,22 +172,3 @@ class CuPyBackend:
             mode=self._scipy_mode(mode),
             cval=float(cval),
         )
-
-    def _pad_kwargs(self, mode: str, cval: float) -> dict[str, object]:
-        normalized = normalize_boundary_mode(mode)
-        if normalized == "constant":
-            return {"mode": "constant", "constant_values": cval}
-        if normalized == "nearest":
-            return {"mode": "edge"}
-        if normalized == "mirror":
-            return {"mode": "symmetric"}
-        return {"mode": normalized}
-
-    @staticmethod
-    def _scipy_mode(mode: str) -> str:
-        normalized = normalize_boundary_mode(mode)
-        if normalized == "reflect":
-            return "mirror"
-        if normalized == "mirror":
-            return "reflect"
-        return normalized
