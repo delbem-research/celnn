@@ -59,7 +59,9 @@ def test_shared_stencil_matches_the_scipy_fast_path_2d(mode, monkeypatch):
 def test_constant_mode_uses_the_fill_value(without_scipy):
     array = np.ones(4)
     kernel = np.array([1.0, 0.0, 0.0])  # picks the left neighbour
-    got = NumPyBackend().aggregate_local(array, kernel, mode="constant", cval=7.0)
+    got = NumPyBackend().aggregate_local(
+        array, kernel, mode="constant", cval=7.0
+    )
     assert got[0] == pytest.approx(7.0)
 
 

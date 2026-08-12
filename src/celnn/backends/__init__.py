@@ -1,8 +1,20 @@
 """Backend utilities."""
 
+from typing import Any
+
 from .cupy_backend import CuPyBackend
 from .numpy_backend import NUMPY_BACKEND, NumPyBackend, get_default_backend
 from .protocol import ArrayBackend
+from .stencil import StencilBackend
+
+
+def __getattr__(name: str) -> Any:
+    """Expose TorchBackend lazily so PyTorch stays optional."""
+    if name == "TorchBackend":
+        from .torch_backend import TorchBackend
+
+        return TorchBackend
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def get_backend(device: str = "cpu") -> ArrayBackend:
@@ -24,6 +36,8 @@ __all__ = [
     "CuPyBackend",
     "NumPyBackend",
     "NUMPY_BACKEND",
+    "StencilBackend",
+    "TorchBackend",
     "get_backend",
     "get_default_backend",
 ]
