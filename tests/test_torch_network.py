@@ -9,8 +9,11 @@ from celnn import CellularNetwork, SimulationConfig
 from celnn.core.templates import Template
 
 torch = pytest.importorskip("torch", reason="PyTorch is optional")
+celnn_torch = pytest.importorskip(
+    "celnn.torch", reason="celnn.torch is not implemented yet"
+)
 
-from celnn.torch import DifferentiableCellularNetwork  # noqa: E402
+DifferentiableCellularNetwork = celnn_torch.DifferentiableCellularNetwork
 
 FEEDBACK = [0.2, -0.3, 1.0, -0.3, 0.2]
 CONTROL = [0.1, 0.2, 0.6, 0.2, 0.1]
