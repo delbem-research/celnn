@@ -1,56 +1,71 @@
-"""Built-in activation functions for cellular outputs."""
+"""Built-in activation functions for cellular outputs.
+
+Each activation is written once and evaluated by whichever array library owns
+its input -- NumPy, CuPy or PyTorch. The expressions below deliberately stay
+inside the intersection of those libraries: arithmetic, the builtin ``abs``,
+and the handful of functions (``tanh``, ``exp``, ``sign``) that all three spell
+identically. That keeps the differentiable path from needing a second, parallel
+implementation that could drift away from this one.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
-import numpy as np
-
+from .arrays import array_namespace, as_float_array
 from .exceptions import CelNNError
 
 
-def piecewise_linear(x: np.ndarray) -> np.ndarray:
+def piecewise_linear(x: Any) -> Any:
     """Classic bounded piecewise-linear activation for many CelNN models."""
-    x = np.asarray(x, dtype=float)
-    return 0.5 * (np.abs(x + 1.0) - np.abs(x - 1.0))
+    x = as_float_array(x)
+    return 0.5 * (abs(x + 1.0) - abs(x - 1.0))
 
 
-def saturated_linear(x: np.ndarray) -> np.ndarray:
-    """Alias-like saturating linear output in ``[-1, 1]``."""
-    x = np.asarray(x, dtype=float)
-    return np.clip(x, -1.0, 1.0)
+def saturated_linear(x: Any) -> Any:
+    """Saturating linear output in ``[-1, 1]``.
+
+    Expressed through ``piecewise_linear`` because the two are the same
+    function; clipping and the absolute-value form agree everywhere.
+    """
+    return piecewise_linear(x)
 
 
-def identity(x: np.ndarray) -> np.ndarray:
+def identity(x: Any) -> Any:
     """Identity activation."""
-    return np.asarray(x, dtype=float)
+    return as_float_array(x)
 
 
-def tanh_activation(x: np.ndarray) -> np.ndarray:
+def tanh_activation(x: Any) -> Any:
     """Hyperbolic tangent activation."""
-    x = np.asarray(x, dtype=float)
-    return np.tanh(x)
+    x = as_float_array(x)
+    return array_namespace(x).tanh(x)
 
 
-def sigmoid_activation(x: np.ndarray) -> np.ndarray:
+def sigmoid_activation(x: Any) -> Any:
     """Logistic activation in ``[0, 1]``."""
-    x = np.asarray(x, dtype=float)
-    return 1.0 / (1.0 + np.exp(-x))
+    x = as_float_array(x)
+    return 1.0 / (1.0 + array_namespace(x).exp(-x))
 
 
-def sign_activation(x: np.ndarray) -> np.ndarray:
+def sign_activation(x: Any) -> Any:
     """Sign activation."""
-    x = np.asarray(x, dtype=float)
-    return np.sign(x)
+    x = as_float_array(x)
+    return array_namespace(x).sign(x)
 
 
-def relu_activation(x: np.ndarray) -> np.ndarray:
-    """Rectified linear activation."""
-    x = np.asarray(x, dtype=float)
-    return np.maximum(x, 0.0)
+def relu_activation(x: Any) -> Any:
+    """Rectified linear activation.
+
+    Written as a masked product rather than ``maximum``: NumPy and PyTorch
+    disagree on whether the second argument may be a Python scalar.
+    """
+    x = as_float_array(x)
+    return x * (x > 0)
 
 
-ACTIVATIONS: dict[str, Callable[[np.ndarray], np.ndarray]] = {
+ACTIVATIONS: dict[str, Callable[[Any], Any]] = {
     "piecewise_linear": piecewise_linear,
     "saturated_linear": saturated_linear,
     "identity": identity,
@@ -62,8 +77,8 @@ ACTIVATIONS: dict[str, Callable[[np.ndarray], np.ndarray]] = {
 
 
 def resolve_activation(
-    name_or_callable: str | Callable[[np.ndarray], np.ndarray],
-) -> Callable[[np.ndarray], np.ndarray]:
+    name_or_callable: str | Callable[[Any], Any],
+) -> Callable[[Any], Any]:
     """Resolve an activation specified by name or callable."""
     if callable(name_or_callable):
         return name_or_callable
@@ -79,7 +94,7 @@ def resolve_activation(
 
 
 def activation_name(
-    name_or_callable: str | Callable[[np.ndarray], np.ndarray],
+    name_or_callable: str | Callable[[Any], Any],
 ) -> str | None:
     """Return a stable activation name if available."""
     if isinstance(name_or_callable, str):
@@ -88,3 +103,17 @@ def activation_name(
         if func is name_or_callable:
             return name
     return None
+
+
+__all__ = [
+    "ACTIVATIONS",
+    "activation_name",
+    "identity",
+    "piecewise_linear",
+    "relu_activation",
+    "resolve_activation",
+    "saturated_linear",
+    "sigmoid_activation",
+    "sign_activation",
+    "tanh_activation",
+]
