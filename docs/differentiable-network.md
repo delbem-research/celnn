@@ -86,6 +86,16 @@ The channelled templates are diagonal: channels evolve independently and do
 not communicate inside the CelNN dynamics. Cross-channel mixing must be an
 explicit model component outside this class.
 
+For causal sequence models, pass `causal=True`. The template then has
+`radius + 1` offsets representing `[-radius, ..., 0]`, rather than the
+classical symmetric extent. Pass `shared_channels=True` to share one scalar
+coefficient per offset and one bias across explicit channels.
+
+The public `step(state, input, extra_drive=...)` method exposes one integration
+step while retaining the canonical derivative and time stepper. The optional
+external drive supports caller-owned channel mixing without copying or
+redefining the CelNN ODE.
+
 For identical scalar templates, inputs, initial states, integration settings,
 and boundaries, the differentiable path is tested against the reference
 simulator at `rtol=1e-9` and `atol=1e-9` in `float64`. Both paths call the same

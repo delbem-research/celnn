@@ -211,3 +211,47 @@ def test_semi_implicit_method_is_available():
 def test_unknown_method_is_rejected():
     with pytest.raises(ValueError, match="method"):
         DifferentiableCellularNetwork(radius=1, method="rk4")
+
+
+def test_causal_network_cannot_observe_future_positions():
+    net = DifferentiableCellularNetwork(
+        radius=2, channels=4, steps=1, causal=True
+    )
+    with torch.no_grad():
+        net.feedback.zero_()
+        net.control.normal_()
+    field = torch.randn(1, 12, 4)
+    base = net(field)
+    altered = field.clone()
+    altered[:, 7] += 100.0
+    after = net(altered)
+    torch.testing.assert_close(base[:, :7], after[:, :7])
+
+
+def test_shared_channel_templates_keep_scalar_parameter_budget():
+    net = DifferentiableCellularNetwork(
+        radius=2,
+        channels=128,
+        causal=True,
+        shared_channels=True,
+    )
+    assert net.feedback.shape == (3, 1)
+    assert net.control.shape == (3, 1)
+    assert net.bias.shape == (1,)
+    assert sum(parameter.numel() for parameter in net.parameters()) == 7
+
+
+def test_single_step_accepts_external_channel_drive():
+    net = DifferentiableCellularNetwork(
+        radius=1, channels=4, causal=True, dt=0.5
+    )
+    with torch.no_grad():
+        net.feedback.zero_()
+        net.control.zero_()
+        net.bias.zero_()
+    state = torch.randn(2, 8, 4)
+    extra = torch.full_like(state, 2.0)
+    expected = state + 0.5 * (-state + extra)
+    torch.testing.assert_close(
+        net.step(state, torch.zeros_like(state), extra), expected
+    )

@@ -41,11 +41,12 @@ class TorchBackend(StencilBackend):
 
     name = "torch"
 
-    def __init__(self, spatial_ndim: int = 1) -> None:
+    def __init__(self, spatial_ndim: int = 1, *, causal: bool = False) -> None:
         if spatial_ndim < 1:
             raise BackendError("spatial_ndim must be at least 1.")
         self.torch = self._import_torch()
         self.spatial_ndim = spatial_ndim
+        self.causal = bool(causal)
 
     @staticmethod
     def _import_torch() -> Any:
@@ -149,3 +150,66 @@ class TorchBackend(StencilBackend):
             padded = torch.index_select(padded, axis, index)
 
         return padded
+
+    def _stencil_sum(
+        self,
+        array: Any,
+        kernel: Any,
+        axes: Sequence[int],
+        *,
+        mode: str,
+        cval: float,
+    ) -> Any:
+        """Apply a left-looking stencil when causal mode is requested."""
+        if not self.causal:
+            return super()._stencil_sum(
+                array, kernel, axes, mode=mode, cval=cval
+            )
+        if len(axes) != 1:
+            raise BackendError(
+                "Causal aggregation currently supports one spatial axis."
+            )
+
+        span = kernel.shape[0]
+        padded = self._pad_one_sided(
+            array, axes[0], span - 1, mode=mode, cval=cval
+        )
+        result = self._zeros_like(array)
+        for offset in range(span):
+            window = self._window(padded, array, axes, (offset,))
+            result = result + kernel[offset] * window
+        return result
+
+    def _pad_one_sided(
+        self,
+        array: Any,
+        axis: int,
+        left: int,
+        *,
+        mode: str,
+        cval: float,
+    ) -> Any:
+        """Pad only the past side of one spatial axis."""
+        if left == 0:
+            return array
+        normalized = normalize_boundary_mode(mode)
+        if normalized == "constant":
+            shape = list(array.shape)
+            shape[axis] = left
+            block = self.torch.full(
+                shape,
+                float(cval),
+                dtype=array.dtype,
+                device=array.device,
+            )
+            return self.torch.cat([block, array], dim=axis)
+
+        gather = np.pad(
+            np.arange(array.shape[axis]),
+            (left, 0),
+            **pad_kwargs(normalized, 0.0),
+        )
+        index = self.torch.as_tensor(
+            gather, dtype=self.torch.long, device=array.device
+        )
+        return self.torch.index_select(array, axis, index)

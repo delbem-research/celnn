@@ -48,6 +48,8 @@ class DifferentiableCellularNetwork(torch.nn.Module):
         steps: int = 10,
         method: str = "euler",
         *,
+        causal: bool = False,
+        shared_channels: bool = False,
         trainable: bool = True,
     ) -> None:
         super().__init__()
@@ -74,9 +76,22 @@ class DifferentiableCellularNetwork(torch.nn.Module):
                 f"Known methods: {known}."
             )
 
-        span = 2 * radius + 1
-        parameter_shape = (span,) if channels is None else (span, channels)
-        bias_shape = () if channels is None else (channels,)
+        if shared_channels and channels is None:
+            raise ValueError(
+                "shared_channels requires an explicit channel count."
+            )
+
+        span = radius + 1 if causal else 2 * radius + 1
+        parameter_shape = (
+            (span,)
+            if channels is None
+            else (span, 1 if shared_channels else channels)
+        )
+        bias_shape = (
+            ()
+            if channels is None
+            else (1 if shared_channels else channels,)
+        )
 
         self.radius = radius
         self.channels = channels
@@ -86,9 +101,11 @@ class DifferentiableCellularNetwork(torch.nn.Module):
         self.dt = float(dt)
         self.steps = steps
         self.method = method
+        self.causal = bool(causal)
+        self.shared_channels = bool(shared_channels)
         self.trainable = bool(trainable)
         self._activation_fn = resolve_activation(activation)
-        self.backend = TorchBackend(spatial_ndim=1)
+        self.backend = TorchBackend(spatial_ndim=1, causal=self.causal)
 
         feedback = torch.zeros(parameter_shape)
         control = torch.zeros(parameter_shape)
@@ -267,6 +284,36 @@ class DifferentiableCellularNetwork(torch.nn.Module):
             boundary_value=self.boundary_value,
         )
 
+    def step(
+        self,
+        state: Any,
+        input: Any,
+        extra_drive: Any | None = None,
+    ) -> torch.Tensor:
+        """Advance one step, optionally adding caller-owned channel mixing."""
+        state_tensor = self._prepare_field(state, "state")
+        input_tensor = self._prepare_field(input, "input")
+        if state_tensor.shape != input_tensor.shape:
+            raise ValueError("state and input must have the same shape.")
+        if self.method != "euler" and extra_drive is not None:
+            raise ValueError(
+                "extra_drive is currently supported only by Euler."
+            )
+
+        term = (
+            self.derivative(state_tensor, input_tensor)
+            if self.method == "euler"
+            else self.drive(state_tensor, input_tensor)
+        )
+        if extra_drive is not None:
+            extra = self._prepare_field(extra_drive, "extra_drive")
+            if extra.shape != state_tensor.shape:
+                raise ValueError(
+                    "extra_drive and state must have the same shape."
+                )
+            term = term + extra
+        return STEPPERS[self.method](state_tensor, self.dt, term)
+
     def forward(self, input: Any, state: Any | None = None) -> torch.Tensor:
         """Evolve ``state`` for the configured number of integration steps."""
         input_tensor = self._prepare_field(input, "input")
@@ -278,13 +325,8 @@ class DifferentiableCellularNetwork(torch.nn.Module):
         if current.shape != input_tensor.shape:
             raise ValueError("state and input must have the same shape.")
 
-        stepper = STEPPERS[self.method]
         for _ in range(self.steps):
-            if self.method == "euler":
-                term = self.derivative(current, input_tensor)
-            else:
-                term = self.drive(current, input_tensor)
-            current = stepper(current, self.dt, term)
+            current = self.step(current, input_tensor)
         return current
 
 
