@@ -113,14 +113,28 @@ class StencilBackend:
     ) -> Any:
         """Accumulate ``sum_j kernel[j] * shift_j(array)`` over the stencil."""
         spans = tuple(kernel.shape[: len(axes)])
-        radii = tuple(span // 2 for span in spans)
-        padded = self._pad(array, axes, radii, mode=mode, cval=cval)
+        padded = self._pad_for_stencil(
+            array, axes, spans, mode=mode, cval=cval
+        )
 
         result = self._zeros_like(array)
         for offset in np.ndindex(*spans):
             window = self._window(padded, array, axes, offset)
             result = result + kernel[offset] * window
         return result
+
+    def _pad_for_stencil(
+        self,
+        array: Any,
+        axes: Sequence[int],
+        spans: Sequence[int],
+        *,
+        mode: str,
+        cval: float,
+    ) -> Any:
+        """Pad the field for the default centered stencil layout."""
+        radii = tuple(span // 2 for span in spans)
+        return self._pad(array, axes, radii, mode=mode, cval=cval)
 
     @staticmethod
     def _window(

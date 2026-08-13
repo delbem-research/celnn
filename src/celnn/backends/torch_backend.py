@@ -151,34 +151,27 @@ class TorchBackend(StencilBackend):
 
         return padded
 
-    def _stencil_sum(
+    def _pad_for_stencil(
         self,
         array: Any,
-        kernel: Any,
         axes: Sequence[int],
+        spans: Sequence[int],
         *,
         mode: str,
         cval: float,
     ) -> Any:
-        """Apply a left-looking stencil when causal mode is requested."""
+        """Use past-side-only padding for a causal one-dimensional stencil."""
         if not self.causal:
-            return super()._stencil_sum(
-                array, kernel, axes, mode=mode, cval=cval
+            return super()._pad_for_stencil(
+                array, axes, spans, mode=mode, cval=cval
             )
         if len(axes) != 1:
             raise BackendError(
                 "Causal aggregation currently supports one spatial axis."
             )
-
-        span = kernel.shape[0]
-        padded = self._pad_one_sided(
-            array, axes[0], span - 1, mode=mode, cval=cval
+        return self._pad_one_sided(
+            array, axes[0], spans[0] - 1, mode=mode, cval=cval
         )
-        result = self._zeros_like(array)
-        for offset in range(span):
-            window = self._window(padded, array, axes, (offset,))
-            result = result + kernel[offset] * window
-        return result
 
     def _pad_one_sided(
         self,
