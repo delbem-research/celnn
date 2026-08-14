@@ -24,11 +24,28 @@ def __getattr__(name: str) -> Any:
         from .differentiable import DifferentiableCellularNetwork
 
         return DifferentiableCellularNetwork
+    if name in {
+        "HebbianRule",
+        "OjaRule",
+        "PlasticLinear",
+        "Plasticity",
+        "PlasticityRule",
+        "PlasticityState",
+    }:
+        from . import plasticity
+
+        return getattr(plasticity, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "CellularNetwork",
     "DifferentiableCellularNetwork",
+    "HebbianRule",
+    "OjaRule",
+    "PlasticLinear",
+    "Plasticity",
+    "PlasticityRule",
+    "PlasticityState",
     "SimulationConfig",
     "SimulationResult",
     "Template",

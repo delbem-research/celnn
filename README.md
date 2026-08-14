@@ -39,6 +39,9 @@ For differentiable templates and backpropagation through CelNN evolution:
 pip install "celnn[torch]"
 ```
 
+The same optional API includes modular Hebbian/Oja fast-weight plasticity with
+explicit per-sequence state. See [the plasticity guide](docs/plasticity.md).
+
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 

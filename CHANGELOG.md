@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added modular PyTorch fast-weight plasticity with explicit per-sequence
+  `PlasticityState`, reusable `HebbianRule` and `OjaRule` updates, configurable
+  slow/fast-weight composition, and a functional `PlasticLinear` layer.
 - Added the optional `torch` extra and the top-level
   `celnn.DifferentiableCellularNetwork` API for learnable or frozen templates,
   multistep backpropagation, diagonal multichannel states, and conversion to
