@@ -59,6 +59,7 @@ class AssociativeFieldState:
         key_size: int,
         *,
         like: torch.Tensor,
+        dtype: torch.dtype | None = None,
     ) -> "AssociativeFieldState":
         dimensions = (batch_size, cells, value_size, key_size)
         if any(
@@ -68,8 +69,11 @@ class AssociativeFieldState:
             for value in dimensions
         ):
             raise ValueError("state dimensions must be positive integers.")
-        memory = like.new_zeros(dimensions)
-        normalizer = like.new_zeros((batch_size, cells, key_size))
+        state_dtype = like.dtype if dtype is None else dtype
+        memory = like.new_zeros(dimensions, dtype=state_dtype)
+        normalizer = like.new_zeros(
+            (batch_size, cells, key_size), dtype=state_dtype
+        )
         return cls(memory, normalizer)
 
     def reset(self) -> "AssociativeFieldState":
@@ -146,7 +150,12 @@ class NormalizedDeltaHebbianField(torch.nn.Module):
         return F.elu(vector) + 1.0
 
     def new_state(
-        self, batch_size: int, cells: int, *, like: torch.Tensor
+        self,
+        batch_size: int,
+        cells: int,
+        *,
+        like: torch.Tensor,
+        dtype: torch.dtype | None = None,
     ) -> AssociativeFieldState:
         return AssociativeFieldState.zeros(
             batch_size,
@@ -154,6 +163,13 @@ class NormalizedDeltaHebbianField(torch.nn.Module):
             self.value_size,
             self.key_size,
             like=like,
+            dtype=dtype,
+        )
+
+    @staticmethod
+    def _without_autocast(reference: torch.Tensor):
+        return torch.autocast(
+            device_type=reference.device.type, enabled=False
         )
 
     def _validate(
@@ -197,14 +213,17 @@ class NormalizedDeltaHebbianField(torch.nn.Module):
     ) -> torch.Tensor:
         """Read one normalized value from every cell without mutation."""
         self._validate(state, query, "query")
-        features = self.feature_map(query)
-        numerator = torch.einsum(
-            "bcvk,bck->bcv", state.memory, features
-        )
-        denominator = torch.einsum(
-            "bck,bck->bc", state.normalizer, features
-        )
-        return numerator / (denominator.unsqueeze(-1) + self.epsilon)
+        with self._without_autocast(state.memory):
+            features = self.feature_map(query.to(state.memory.dtype))
+            numerator = torch.einsum(
+                "bcvk,bck->bcv", state.memory, features
+            )
+            denominator = torch.einsum(
+                "bck,bck->bc", state.normalizer, features
+            )
+            return numerator / (
+                denominator.unsqueeze(-1) + self.epsilon
+            )
 
     def write(
         self,
@@ -230,49 +249,54 @@ class NormalizedDeltaHebbianField(torch.nn.Module):
         if mask is not None and tuple(mask.shape) != key.shape[:2]:
             raise ValueError("mask must match the batch and cell axes.")
 
-        rate = self._coefficient(
-            self.learning_rate if learning_rate is None else learning_rate,
-            state.memory,
-            "learning_rate",
-        )
-        keep = self._coefficient(
-            self.retention if retention is None else retention,
-            state.memory,
-            "retention",
-        )
-        if mask is not None:
-            active = mask.to(dtype=state.memory.dtype)
-            rate = rate * active
-            keep = keep * active + (1.0 - active)
-
-        features = self.feature_map(key)
-        prediction = self.read(state, key)
-        target = prediction + rate[..., None] * (value - prediction)
-        memory = keep[..., None, None] * state.memory
-        normalizer = keep[..., None] * state.normalizer
-        normalizer = normalizer + rate[..., None] * features
-        target_denominator = torch.einsum(
-            "bck,bck->bc", normalizer, features
-        ) + self.epsilon
-        current_numerator = torch.einsum(
-            "bcvk,bck->bcv", memory, features
-        )
-        residual = target * target_denominator[..., None]
-        residual = residual - current_numerator
-        feature_energy = features.square().sum(dim=-1) + self.epsilon
-        correction = torch.einsum(
-            "bcv,bck->bcvk", residual / feature_energy[..., None], features
-        )
-        memory = memory + correction
-        if self.memory_limit is not None:
-            memory_peak = memory.abs().amax(dim=(-2, -1), keepdim=False)
-            normalizer_peak = normalizer.abs().amax(dim=-1)
-            peak = torch.maximum(memory_peak, normalizer_peak)
-            scale = (self.memory_limit / peak.clamp_min(self.epsilon)).clamp(
-                max=1.0
+        with self._without_autocast(state.memory):
+            key = key.to(state.memory.dtype)
+            value = value.to(state.memory.dtype)
+            rate = self._coefficient(
+                self.learning_rate if learning_rate is None else learning_rate,
+                state.memory,
+                "learning_rate",
             )
-            memory = memory * scale[..., None, None]
-            normalizer = normalizer * scale[..., None]
+            keep = self._coefficient(
+                self.retention if retention is None else retention,
+                state.memory,
+                "retention",
+            )
+            if mask is not None:
+                active = mask.to(dtype=state.memory.dtype)
+                rate = rate * active
+                keep = keep * active + (1.0 - active)
+
+            features = self.feature_map(key)
+            prediction = self.read(state, key)
+            target = prediction + rate[..., None] * (value - prediction)
+            memory = keep[..., None, None] * state.memory
+            normalizer = keep[..., None] * state.normalizer
+            normalizer = normalizer + rate[..., None] * features
+            target_denominator = torch.einsum(
+                "bck,bck->bc", normalizer, features
+            ) + self.epsilon
+            current_numerator = torch.einsum(
+                "bcvk,bck->bcv", memory, features
+            )
+            residual = target * target_denominator[..., None]
+            residual = residual - current_numerator
+            feature_energy = features.square().sum(dim=-1) + self.epsilon
+            correction = torch.einsum(
+                "bcv,bck->bcvk",
+                residual / feature_energy[..., None],
+                features,
+            )
+            memory = memory + correction
+            if self.memory_limit is not None:
+                memory_peak = memory.abs().amax(dim=(-2, -1), keepdim=False)
+                normalizer_peak = normalizer.abs().amax(dim=-1)
+                peak = torch.maximum(memory_peak, normalizer_peak)
+                scale = (
+                    self.memory_limit / peak.clamp_min(self.epsilon)
+                ).clamp(max=1.0)
+                memory = memory * scale[..., None, None]
+                normalizer = normalizer * scale[..., None]
         if self.detach_updates:
             memory = memory.detach()
             normalizer = normalizer.detach()

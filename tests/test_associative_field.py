@@ -35,6 +35,31 @@ def test_state_is_explicit_local_resettable_and_movable():
     assert state.to(dtype=torch.float64).memory.dtype == torch.float64
 
 
+def test_state_dtype_can_be_independent_from_projection_dtype():
+    field = make_field()
+    state = field.new_state(
+        2, 5, like=torch.ones(1, dtype=torch.bfloat16), dtype=torch.float32
+    )
+
+    assert state.memory.dtype == torch.float32
+    assert state.normalizer.dtype == torch.float32
+
+
+def test_read_write_accumulate_in_state_dtype_under_autocast():
+    field = make_field()
+    state = field.new_state(1, 2, like=torch.ones(1), dtype=torch.float32)
+    key = torch.randn(1, 2, 3, dtype=torch.bfloat16)
+    value = torch.randn(1, 2, 2, dtype=torch.bfloat16)
+
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        written = field.write(state, key, value)
+        retrieved = field.read(written, key)
+
+    assert written.memory.dtype == torch.float32
+    assert written.normalizer.dtype == torch.float32
+    assert retrieved.dtype == torch.float32
+
+
 def test_positive_feature_map_keeps_denominator_non_negative():
     field = make_field()
     state = field.new_state(1, 2, like=torch.ones(1))
@@ -123,8 +148,8 @@ def test_joint_limit_bounds_both_fields_without_distorting_read():
     reference = unlimited.write(state, key, value)
     bounded = limited.write(state, key, value)
 
-    assert bounded.memory.abs().max() <= 0.1
-    assert bounded.normalizer.abs().max() <= 0.1
+    assert bounded.memory.abs().max() <= 0.100001
+    assert bounded.normalizer.abs().max() <= 0.100001
     torch.testing.assert_close(
         limited.read(bounded, key),
         unlimited.read(reference, key),

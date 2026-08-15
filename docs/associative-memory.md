@@ -57,6 +57,23 @@ state = field.write(state, keys, values, mask=active_cells)
 retrieved = field.read(state, queries)
 ```
 
+Callers may keep recurrent accumulators in a wider dtype than their learned
+projections:
+
+```python
+state = field.new_state(
+    batch_size=4,
+    cells=32,
+    like=activity,
+    dtype=torch.float32,
+)
+```
+
+Reads and writes explicitly disable mixed-precision autocast and convert
+keys, values, gates, and queries to the state dtype. Thus `M`, `s`, numerator,
+denominator, and Delta-Hebbian corrections remain FP32 while the surrounding
+network can use BF16.
+
 The read is `M_i phi(q_i) / (s_i^T phi(q_i) + epsilon)`, with the strictly
 positive feature map `phi(z) = elu(z) + 1`. A write moves that normalized
 response by `learning_rate * (value - prediction)`. The corresponding local
