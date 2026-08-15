@@ -63,6 +63,10 @@ response by `learning_rate * (value - prediction)`. The corresponding local
 outer-product correction accounts for the simultaneous change in `s_i`, so a
 larger denominator cannot make an already-correct association worse.
 
+When `memory_limit` is set, the implementation rescales `M_i` and `s_i`
+together per cell instead of clamping only the numerator. Their normalized
+read is therefore preserved while both pieces of transient state stay bounded.
+
 The library keeps spatial propagation separate from associative storage. A
 caller can therefore diffuse both `state.memory` and `state.normalizer` over
 a one-dimensional lattice, image grid, or arbitrary graph without coupling

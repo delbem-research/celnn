@@ -113,6 +113,26 @@ def test_rates_can_be_controlled_per_cell_and_receive_gradients():
         assert torch.isfinite(tensor.grad).all()
 
 
+def test_joint_limit_bounds_both_fields_without_distorting_read():
+    unlimited = make_field(learning_rate=1.0, memory_limit=None)
+    limited = make_field(learning_rate=1.0, memory_limit=0.1)
+    state = unlimited.new_state(1, 2, like=torch.ones(1))
+    key = torch.randn(1, 2, 3)
+    value = torch.tensor([[[8.0, -4.0], [2.0, 6.0]]])
+
+    reference = unlimited.write(state, key, value)
+    bounded = limited.write(state, key, value)
+
+    assert bounded.memory.abs().max() <= 0.1
+    assert bounded.normalizer.abs().max() <= 0.1
+    torch.testing.assert_close(
+        limited.read(bounded, key),
+        unlimited.read(reference, key),
+        atol=2e-4,
+        rtol=2e-4,
+    )
+
+
 def test_state_rejects_mismatched_normalizer_shape():
     with pytest.raises(ValueError, match="normalizer"):
         AssociativeFieldState(torch.zeros(1, 2, 3, 4), torch.zeros(1, 3, 4))

@@ -265,7 +265,14 @@ class NormalizedDeltaHebbianField(torch.nn.Module):
         )
         memory = memory + correction
         if self.memory_limit is not None:
-            memory = memory.clamp(-self.memory_limit, self.memory_limit)
+            memory_peak = memory.abs().amax(dim=(-2, -1), keepdim=False)
+            normalizer_peak = normalizer.abs().amax(dim=-1)
+            peak = torch.maximum(memory_peak, normalizer_peak)
+            scale = (self.memory_limit / peak.clamp_min(self.epsilon)).clamp(
+                max=1.0
+            )
+            memory = memory * scale[..., None, None]
+            normalizer = normalizer * scale[..., None]
         if self.detach_updates:
             memory = memory.detach()
             normalizer = normalizer.detach()
