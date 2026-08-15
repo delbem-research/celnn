@@ -25,6 +25,9 @@ def __getattr__(name: str) -> Any:
 
         return DifferentiableCellularNetwork
     if name in {
+        "AssociativeMemoryState",
+        "DeltaHebbianMemory",
+        "DeltaHebbianRule",
         "HebbianRule",
         "OjaRule",
         "PlasticLinear",
@@ -32,13 +35,17 @@ def __getattr__(name: str) -> Any:
         "PlasticityRule",
         "PlasticityState",
     }:
-        from . import plasticity
+        from . import associative, plasticity
 
-        return getattr(plasticity, name)
+        module = associative if hasattr(associative, name) else plasticity
+        return getattr(module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "CellularNetwork",
+    "AssociativeMemoryState",
+    "DeltaHebbianMemory",
+    "DeltaHebbianRule",
     "DifferentiableCellularNetwork",
     "HebbianRule",
     "OjaRule",
