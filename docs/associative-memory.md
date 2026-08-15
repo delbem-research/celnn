@@ -74,6 +74,11 @@ keys, values, gates, and queries to the state dtype. Thus `M`, `s`, numerator,
 denominator, and Delta-Hebbian corrections remain FP32 while the surrounding
 network can use BF16.
 
+`read` pairs every query with the memory at the same cell. `read_all` instead
+queries every cell and returns a separate value for each one. The latter is a
+reusable primitive for fixed-size state-matched memory-bank controls that have
+no cellular topology.
+
 The read is `M_i phi(q_i) / (s_i^T phi(q_i) + epsilon)`, with the strictly
 positive feature map `phi(z) = elu(z) + 1`. A write moves that normalized
 response by `learning_rate * (value - prediction)`. The corresponding local

@@ -60,6 +60,26 @@ def test_read_write_accumulate_in_state_dtype_under_autocast():
     assert retrieved.dtype == torch.float32
 
 
+def test_read_all_queries_every_independent_memory_cell():
+    field = make_field(learning_rate=1.0)
+    state = field.new_state(1, 3, like=torch.ones(1))
+    keys = torch.randn(1, 3, 3)
+    values = torch.randn(1, 3, 2)
+    written = field.write(state, keys, values)
+    queries = torch.randn(1, 4, 3)
+
+    retrieved = field.read_all(written, queries)
+
+    assert retrieved.shape == (1, 4, 3, 2)
+    for slot in range(3):
+        isolated = AssociativeFieldState(
+            written.memory[:, slot : slot + 1],
+            written.normalizer[:, slot : slot + 1],
+        )
+        expected = field.read_all(isolated, queries).squeeze(-2)
+        torch.testing.assert_close(retrieved[:, :, slot], expected)
+
+
 def test_positive_feature_map_keeps_denominator_non_negative():
     field = make_field()
     state = field.new_state(1, 2, like=torch.ones(1))

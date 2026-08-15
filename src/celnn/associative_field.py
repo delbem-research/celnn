@@ -225,6 +225,41 @@ class NormalizedDeltaHebbianField(torch.nn.Module):
                 denominator.unsqueeze(-1) + self.epsilon
             )
 
+    def read_all(
+        self, state: AssociativeFieldState, query: torch.Tensor
+    ) -> torch.Tensor:
+        """Read every memory cell for each arbitrary query position.
+
+        ``query`` has shape ``(batch, ..., key)``. The result has shape
+        ``(batch, ..., cells, value)``. This is useful for fixed-size memory
+        banks whose slots have no spatial correspondence with query positions.
+        """
+        if query.ndim < 2 or query.shape[0] != state.memory.shape[0]:
+            raise ValueError("query must have a matching batch axis.")
+        if query.shape[-1] != self.key_size:
+            raise ValueError(
+                f"query last axis must have size {self.key_size}."
+            )
+        if query.device != state.memory.device:
+            raise ValueError("query and state must use the same device.")
+        memory_features = tuple(state.memory.shape[2:])
+        if memory_features != (self.value_size, self.key_size):
+            raise ValueError(
+                "state memory value/key axes do not match this field."
+            )
+
+        with self._without_autocast(state.memory):
+            features = self.feature_map(query.to(state.memory.dtype))
+            numerator = torch.einsum(
+                "bcvk,b...k->b...cv", state.memory, features
+            )
+            denominator = torch.einsum(
+                "bck,b...k->b...c", state.normalizer, features
+            )
+            return numerator / (
+                denominator.unsqueeze(-1) + self.epsilon
+            )
+
     def write(
         self,
         state: AssociativeFieldState,
