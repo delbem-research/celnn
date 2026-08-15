@@ -41,3 +41,29 @@ policy to the reusable memory rule.
 The memory is constant-size: a key width `k` and value width `v` require `k*v`
 dynamic scalars per sequence, independent of sequence length. With both widths
 set to 32, that is 1,024 scalars, or 2 KiB in FP16.
+
+## Normalized associative fields
+
+`NormalizedDeltaHebbianField` generalizes the key--value memory to a field of
+independent local memories. Each cell owns a numerator matrix `M_i` and a
+positive normalizer vector `s_i`:
+
+```python
+from celnn import NormalizedDeltaHebbianField
+
+field = NormalizedDeltaHebbianField(key_size=16, value_size=16)
+state = field.new_state(batch_size=4, cells=32, like=activity)
+state = field.write(state, keys, values, mask=active_cells)
+retrieved = field.read(state, queries)
+```
+
+The read is `M_i phi(q_i) / (s_i^T phi(q_i) + epsilon)`, with the strictly
+positive feature map `phi(z) = elu(z) + 1`. A write moves that normalized
+response by `learning_rate * (value - prediction)`. The corresponding local
+outer-product correction accounts for the simultaneous change in `s_i`, so a
+larger denominator cannot make an already-correct association worse.
+
+The library keeps spatial propagation separate from associative storage. A
+caller can therefore diffuse both `state.memory` and `state.normalizer` over
+a one-dimensional lattice, image grid, or arbitrary graph without coupling
+the primitive to a particular topology.

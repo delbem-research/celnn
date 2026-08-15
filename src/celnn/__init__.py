@@ -25,6 +25,7 @@ def __getattr__(name: str) -> Any:
 
         return DifferentiableCellularNetwork
     if name in {
+        "AssociativeFieldState",
         "AssociativeMemoryState",
         "DeltaHebbianMemory",
         "DeltaHebbianRule",
@@ -34,20 +35,28 @@ def __getattr__(name: str) -> Any:
         "Plasticity",
         "PlasticityRule",
         "PlasticityState",
+        "NormalizedDeltaHebbianField",
     }:
-        from . import associative, plasticity
+        from . import associative, associative_field, plasticity
 
-        module = associative if hasattr(associative, name) else plasticity
+        if hasattr(associative, name):
+            module = associative
+        elif hasattr(associative_field, name):
+            module = associative_field
+        else:
+            module = plasticity
         return getattr(module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
     "CellularNetwork",
+    "AssociativeFieldState",
     "AssociativeMemoryState",
     "DeltaHebbianMemory",
     "DeltaHebbianRule",
     "DifferentiableCellularNetwork",
     "HebbianRule",
+    "NormalizedDeltaHebbianField",
     "OjaRule",
     "PlasticLinear",
     "Plasticity",
@@ -66,4 +75,4 @@ __all__ = [
     "tanh_activation",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
