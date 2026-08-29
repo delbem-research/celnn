@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 try:
     import torch
@@ -51,7 +52,7 @@ class AssociativeMemoryState:
     def detach(self) -> "AssociativeMemoryState":
         return AssociativeMemoryState(self.memory.detach(), self.updates)
 
-    def to(self, *args, **kwargs) -> "AssociativeMemoryState":
+    def to(self, *args: Any, **kwargs: Any) -> "AssociativeMemoryState":
         return AssociativeMemoryState(
             self.memory.to(*args, **kwargs), self.updates
         )

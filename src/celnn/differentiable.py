@@ -210,9 +210,12 @@ class DifferentiableCellularNetwork(torch.nn.Module):
     def _expand_channel_template(
         self, value: torch.Tensor, span: int, name: str
     ) -> torch.Tensor:
+        channels = self.channels
+        if channels is None:
+            raise RuntimeError("channel template expansion requires channels.")
         if tuple(value.shape) == (span,):
-            return value.reshape(span, 1).expand(span, self.channels)
-        expected = (span, self.channels)
+            return value.reshape(span, 1).expand(span, channels)
+        expected = (span, channels)
         if tuple(value.shape) == expected:
             return value
         raise ValueError(f"{name} must have shape ({span},) or {expected}.")

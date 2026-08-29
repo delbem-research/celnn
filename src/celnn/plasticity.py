@@ -8,7 +8,7 @@ and :class:`Plasticity` composes that memory with any slow weight tensor.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 try:
     import torch
@@ -60,7 +60,7 @@ class PlasticityState:
         """Cut history while retaining the current fast weights."""
         return PlasticityState(self.memory.detach(), self.updates)
 
-    def to(self, *args, **kwargs) -> "PlasticityState":
+    def to(self, *args: Any, **kwargs: Any) -> "PlasticityState":
         """Move or cast the memory like :meth:`torch.Tensor.to`."""
         return PlasticityState(self.memory.to(*args, **kwargs), self.updates)
 
@@ -76,6 +76,7 @@ class PlasticityRule(Protocol):
         memory: torch.Tensor,
     ) -> torch.Tensor:
         """Update ``memory`` from paired pre/post-synaptic activities."""
+        ...
 
 
 def _activities(

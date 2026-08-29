@@ -12,5 +12,6 @@
   "reportUnknownParameterType": "none",
   "reportUnknownVariableType": "none",
   "reportUnnecessaryComparison": "none",
-  "reportUnnecessaryIsInstance": "none"
+  "reportUnnecessaryIsInstance": "none",
+  "reportUnusedVariable": "none"
 }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 try:
     import torch
@@ -89,7 +90,7 @@ class AssociativeFieldState:
             self.updates,
         )
 
-    def to(self, *args, **kwargs) -> "AssociativeFieldState":
+    def to(self, *args: Any, **kwargs: Any) -> "AssociativeFieldState":
         return AssociativeFieldState(
             self.memory.to(*args, **kwargs),
             self.normalizer.to(*args, **kwargs),

@@ -105,8 +105,9 @@ jobs:
           python -m venv .venv-wheel
           .venv-wheel/bin/python -m pip install --upgrade pip
           .venv-wheel/bin/python -m pip install dist/*.whl "pyright>=1.1"
+          source .venv-wheel/bin/activate
           cd /tmp
-          "$GITHUB_WORKSPACE/.venv-wheel/bin/python" - <<'PY'
+          python - <<'PY'
           from importlib.resources import files
 
           import numpy as np
@@ -123,6 +124,4 @@ jobs:
           result = net.run(SimulationConfig(t_end=0.1, dt=0.1))
           assert result.output.shape == (4,)
           PY
-          "$GITHUB_WORKSPACE/.venv-wheel/bin/pyright" \
-            --pythonpath "$GITHUB_WORKSPACE/.venv-wheel/bin/python" \
-            --verifytypes celnn --ignoreexternal
+          pyright --verifytypes celnn --ignoreexternal

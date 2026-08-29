@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+from numpy.typing import DTypeLike
 
 from .exceptions import TemplateValidationError
 from .validation import coerce_ndarray, validate_template_shapes
@@ -72,7 +73,7 @@ class Template:
         return self
 
     def as_arrays(
-        self, *, dtype: object | None = None
+        self, *, dtype: DTypeLike | None = None
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
         """Return feedback, control, and optional initial state as arrays."""
         self.validate()

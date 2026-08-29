@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import numpy as np
+from numpy.typing import DTypeLike
 
 from .exceptions import ShapeMismatchError, TemplateValidationError
 
 
 def coerce_ndarray(
-    value: object, *, dtype: object | None = None, name: str = "value"
+    value: object, *, dtype: DTypeLike | None = None, name: str = "value"
 ) -> np.ndarray:
     """Convert a value to a NumPy array."""
     try:
