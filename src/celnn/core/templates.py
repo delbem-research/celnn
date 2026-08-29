@@ -11,6 +11,17 @@ import numpy as np
 from .exceptions import TemplateValidationError
 from .validation import coerce_ndarray, validate_template_shapes
 
+_ALLOWED_KEYS = {
+    "name",
+    "feedback",
+    "control",
+    "bias",
+    "initial_state",
+    "description",
+    "tags",
+    "metadata",
+}
+
 
 @dataclass(slots=True)
 class Template:
@@ -27,6 +38,25 @@ class Template:
 
     def validate(self) -> "Template":
         """Validate template consistency."""
+        if not isinstance(self.name, str) or not self.name:
+            raise TemplateValidationError(
+                "Template name must be a non-empty string."
+            )
+        if not isinstance(self.description, str):
+            raise TemplateValidationError(
+                "Template description must be a string."
+            )
+        if not isinstance(self.tags, list) or not all(
+            isinstance(tag, str) for tag in self.tags
+        ):
+            raise TemplateValidationError(
+                "Template tags must be a list of strings."
+            )
+        if not isinstance(self.metadata, dict):
+            raise TemplateValidationError(
+                "Template metadata must be a dictionary."
+            )
+
         feedback = coerce_ndarray(self.feedback, dtype=float, name="feedback")
         control = coerce_ndarray(self.control, dtype=float, name="control")
         validate_template_shapes(feedback, control, feedback.ndim)
@@ -84,15 +114,40 @@ class Template:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Template":
-        """Create a template from a serialized dictionary."""
+        """Create a validated template from a dictionary."""
+        if not isinstance(data, dict):
+            raise TemplateValidationError(
+                "Template data must be a dictionary."
+            )
+        unknown = set(data) - _ALLOWED_KEYS
+        if unknown:
+            names = ", ".join(sorted(unknown))
+            raise TemplateValidationError(f"Unknown Template fields: {names}.")
+        for required in ("name", "feedback", "control"):
+            if required not in data:
+                raise TemplateValidationError(
+                    f"Template data is missing {required!r}."
+                )
+        description = data.get("description", "")
+        tags = data.get("tags", [])
+        metadata = data.get("metadata", {})
+        if not isinstance(description, str):
+            raise TemplateValidationError("description must be a string.")
+        if not isinstance(tags, list) or not all(
+            isinstance(tag, str) for tag in tags
+        ):
+            raise TemplateValidationError("tags must be a list of strings.")
+        if not isinstance(metadata, dict):
+            raise TemplateValidationError("metadata must be a dictionary.")
+
         template = cls(
             name=data["name"],
             feedback=data["feedback"],
             control=data["control"],
             bias=data.get("bias", 0.0),
             initial_state=data.get("initial_state"),
-            description=data.get("description", ""),
-            tags=list(data.get("tags", [])),
-            metadata=deepcopy(data.get("metadata", {})),
+            description=description,
+            tags=list(tags),
+            metadata=deepcopy(metadata),
         )
         return template.validate()
