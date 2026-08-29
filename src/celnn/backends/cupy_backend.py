@@ -25,7 +25,7 @@ class CuPyBackend(StencilBackend):
     name = "cupy"
 
     def __init__(self) -> None:
-        self.cp = self._import_cupy()
+        self.cp: Any = self._import_cupy()
 
     @classmethod
     def is_available(cls) -> bool:

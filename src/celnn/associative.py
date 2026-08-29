@@ -7,11 +7,11 @@ from typing import Any
 
 try:
     import torch
-except ImportError as exc:  # pragma: no cover - optional dependency branch
+except ImportError as _exc:  # pragma: no cover - optional dependency branch
     raise ImportError(
         "Associative memory requires PyTorch. Install it with "
         "`pip install celnn[torch]`."
-    ) from exc
+    ) from _exc
 
 
 @dataclass(frozen=True)
@@ -69,6 +69,11 @@ class DeltaHebbianRule:
     ``rate`` and ``retention`` may be scalars or per-sample tensors supplied by
     a controller. The rule owns no hidden state and no trainable parameters.
     """
+
+    learning_rate: float
+    retention: float
+    normalize_keys: bool
+    epsilon: float
 
     def __init__(
         self,
@@ -154,6 +159,12 @@ class DeltaHebbianRule:
 
 class DeltaHebbianMemory(torch.nn.Module):
     """Functional memory composed from delta-Hebb read/write operations."""
+
+    key_size: int
+    value_size: int
+    rule: DeltaHebbianRule
+    detach_updates: bool
+    memory_limit: float | None
 
     def __init__(
         self,

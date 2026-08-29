@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 
-from ..backends import get_backend
+from ..backends import ArrayBackend, get_backend
 from .activations import activation_name, resolve_activation
 from .boundary import normalize_boundary_mode
 from .dynamics import derivative as compute_derivative
@@ -60,6 +60,21 @@ def _normalize_dtype(value: Any | None) -> np.dtype[Any]:
 class CellularNetwork:
     """Continuous-time Cellular Neural Network over a regular grid."""
 
+    dtype: np.dtype[Any]
+    input: np.ndarray
+    state_shape: tuple[int, ...]
+    topology: RegularGridTopology
+    boundary: str
+    boundary_value: float
+    metadata: dict[str, Any]
+    device: str
+    backend: ArrayBackend
+    feedback: np.ndarray
+    control: np.ndarray
+    bias: np.ndarray
+    activation: str | Callable[[Any], Any]
+    state: np.ndarray
+
     def __init__(
         self,
         input: Any,
@@ -67,7 +82,7 @@ class CellularNetwork:
         feedback: Any | None = None,
         control: Any | None = None,
         bias: Any = 0.0,
-        activation: str | Any = "piecewise_linear",
+        activation: str | Callable[[Any], Any] = "piecewise_linear",
         boundary: str = "constant",
         boundary_value: float = 0.0,
         dtype: Any | None = None,
@@ -137,7 +152,7 @@ class CellularNetwork:
         input: Any,
         *,
         initial_state: Any | None = None,
-        activation: str | Any = "piecewise_linear",
+        activation: str | Callable[[Any], Any] = "piecewise_linear",
         boundary: str = "constant",
         boundary_value: float = 0.0,
         dtype: Any | None = None,

@@ -124,4 +124,10 @@ jobs:
           result = net.run(SimulationConfig(t_end=0.1, dt=0.1))
           assert result.output.shape == (4,)
           PY
+          python -m pip install \
+            "torch>=2.2" \
+            "scipy>=1.10" \
+            "deap>=1.4" \
+            "pillow>=10" \
+            "matplotlib>=3.8"
           pyright --verifytypes celnn --ignoreexternal

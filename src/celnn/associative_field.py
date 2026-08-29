@@ -8,11 +8,11 @@ from typing import Any
 try:
     import torch
     import torch.nn.functional as F
-except ImportError as exc:  # pragma: no cover - optional dependency branch
+except ImportError as _exc:  # pragma: no cover - optional dependency branch
     raise ImportError(
         "Associative fields require PyTorch. Install them with "
         "`pip install celnn[torch]`."
-    ) from exc
+    ) from _exc
 
 
 @dataclass(frozen=True)
@@ -114,6 +114,14 @@ class NormalizedDeltaHebbianField(torch.nn.Module):
     between cells. A CelNN, graph, or grid can propagate the explicit state
     before calling :meth:`read` or :meth:`write`.
     """
+
+    key_size: int
+    value_size: int
+    learning_rate: float
+    retention: float
+    epsilon: float
+    detach_updates: bool
+    memory_limit: float | None
 
     def __init__(
         self,

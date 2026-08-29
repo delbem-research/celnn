@@ -14,11 +14,11 @@ import numpy as np
 
 try:
     import torch
-except ImportError as exc:  # pragma: no cover - environment branch
+except ImportError as _exc:  # pragma: no cover - environment branch
     raise ImportError(
         "DifferentiableCellularNetwork requires PyTorch. "
         "Install it with `pip install celnn[torch]`."
-    ) from exc
+    ) from _exc
 
 from .backends.torch_backend import TorchBackend
 from .core.activations import resolve_activation
@@ -36,6 +36,22 @@ class DifferentiableCellularNetwork(torch.nn.Module):
     including ``channels=1``, adds an explicit final channel axis and diagonal
     per-channel templates. Channels do not mix inside these dynamics.
     """
+
+    radius: int
+    channels: int | None
+    activation: str | Callable[[Any], Any]
+    boundary: str
+    boundary_value: float
+    dt: float
+    steps: int
+    method: str
+    causal: bool
+    shared_channels: bool
+    trainable: bool
+    backend: TorchBackend
+    feedback: torch.Tensor
+    control: torch.Tensor
+    bias: torch.Tensor
 
     def __init__(
         self,

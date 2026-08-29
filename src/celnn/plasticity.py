@@ -12,11 +12,11 @@ from typing import Any, Protocol, runtime_checkable
 
 try:
     import torch
-except ImportError as exc:  # pragma: no cover - optional dependency branch
+except ImportError as _exc:  # pragma: no cover - optional dependency branch
     raise ImportError(
         "Plasticity requires PyTorch. Install it with "
         "`pip install celnn[torch]`."
-    ) from exc
+    ) from _exc
 
 
 @dataclass(frozen=True)
@@ -105,6 +105,9 @@ def _mean_outer(pre: torch.Tensor, post: torch.Tensor) -> torch.Tensor:
 class HebbianRule:
     """Hebbian correlation with optional decay: ``λH + η E[y xᵀ]``."""
 
+    learning_rate: float
+    decay: float
+
     def __init__(
         self, learning_rate: float = 0.01, decay: float = 1.0
     ) -> None:
@@ -128,6 +131,9 @@ class HebbianRule:
 
 class OjaRule:
     """Normalized Hebbian learning using Oja's local stabilizing term."""
+
+    learning_rate: float
+    decay: float
 
     def __init__(
         self, learning_rate: float = 0.01, decay: float = 1.0
@@ -154,6 +160,11 @@ class OjaRule:
 
 class Plasticity(torch.nn.Module):
     """Compose slow weights with rule-driven transient fast weights."""
+
+    alpha: torch.Tensor
+    rule: PlasticityRule
+    detach_updates: bool
+    memory_limit: float | None
 
     def __init__(
         self,
@@ -213,6 +224,9 @@ class Plasticity(torch.nn.Module):
 
 class PlasticLinear(torch.nn.Module):
     """Reusable linear layer with caller-owned, per-sample fast weights."""
+
+    linear: torch.nn.Linear
+    plasticity: Plasticity
 
     def __init__(
         self,

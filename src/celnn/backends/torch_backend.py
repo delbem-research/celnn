@@ -44,9 +44,9 @@ class TorchBackend(StencilBackend):
     def __init__(self, spatial_ndim: int = 1, *, causal: bool = False) -> None:
         if spatial_ndim < 1:
             raise BackendError("spatial_ndim must be at least 1.")
-        self.torch = self._import_torch()
-        self.spatial_ndim = spatial_ndim
-        self.causal = bool(causal)
+        self.torch: Any = self._import_torch()
+        self.spatial_ndim: int = spatial_ndim
+        self.causal: bool = bool(causal)
 
     @staticmethod
     def _import_torch() -> Any:
