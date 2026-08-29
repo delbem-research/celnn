@@ -7,40 +7,125 @@ on:
   pull_request:
 
 jobs:
-  test:
+  base:
+    name: Base / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install base package and test runner
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install "pytest>=8"
+      - name: Prove optional imports remain optional
+        run: |
+          python - <<'PY'
+          import sys
+          import celnn
+
+          assert "torch" not in sys.modules
+          assert "cupy" not in sys.modules
+          assert "scipy" not in sys.modules
+          PY
+      - name: Run base-compatible tests
+        run: pytest --ignore=tests/test_ga_training.py
+
+  quality:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          auto-activate-base: false
-          activate-environment: pycelnn
-          environment-file: environment.yml
-
-      - name: Install package
-        shell: bash -el {0}
+          python-version: "3.12"
+      - name: Install quality dependencies
         run: |
-          pip install -e ".[torch]"
-
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,torch]"
       - name: Compile sources
-        shell: bash -el {0}
-        run: |
-          python -m compileall src
-
-      - name: Run tests
-        shell: bash -el {0}
-        run: |
-          pytest
-
+        run: python -m compileall src
       - name: Ruff
-        shell: bash -el {0}
-        run: |
-          ruff check .
-
+        run: ruff check .
       - name: Mypy
-        shell: bash -el {0}
+        run: mypy src/celnn
+
+  optional:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install representative optional integrations
         run: |
-          mypy src/celnn/core/network.py src/celnn/core/simulation.py src/celnn/core/solvers.py
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,torch,scipy,ga,image,viz]"
+      - name: Run full non-CUDA suite
+        run: pytest
+
+  distribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+          python -m build
+          python -m twine check --strict dist/*
+      - name: Verify typing marker is packaged
+        run: |
+          python - <<'PY'
+          import tarfile
+          import zipfile
+          from pathlib import Path
+
+          wheel = next(Path("dist").glob("*.whl"))
+          with zipfile.ZipFile(wheel) as archive:
+              assert any(name.endswith("celnn/py.typed") for name in archive.namelist())
+
+          sdist = next(Path("dist").glob("*.tar.gz"))
+          with tarfile.open(sdist) as archive:
+              assert any(name.endswith("src/celnn/py.typed") for name in archive.getnames())
+          PY
+      - name: Smoke-test exact wheel
+        run: |
+          python -m venv .venv-wheel
+          .venv-wheel/bin/python -m pip install --upgrade pip
+          .venv-wheel/bin/python -m pip install dist/*.whl
+          cd /tmp
+          "$GITHUB_WORKSPACE/.venv-wheel/bin/python" - <<'PY'
+          import numpy as np
+          from celnn import CellularNetwork, SimulationConfig
+
+          net = CellularNetwork(
+              input=np.ones(4),
+              feedback=[0.0, 0.0, 0.0],
+              control=[0.0, 1.0, 0.0],
+              activation="identity",
+          )
+          result = net.run(SimulationConfig(t_end=0.1, dt=0.1))
+          assert result.output.shape == (4,)
+          PY
+      - name: Smoke-test exact sdist
+        run: |
+          python -m venv .venv-sdist
+          .venv-sdist/bin/python -m pip install --upgrade pip
+          .venv-sdist/bin/python -m pip install dist/*.tar.gz
+          cd /tmp
+          "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
+          import numpy as np
+          from celnn import CellularNetwork
+
+          net = CellularNetwork(input=np.ones(3))
+          assert net.output().shape == (3,)
+          PY
