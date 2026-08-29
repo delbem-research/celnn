@@ -124,4 +124,5 @@ jobs:
           assert result.output.shape == (4,)
           PY
           "$GITHUB_WORKSPACE/.venv-wheel/bin/pyright" \
+            --pythonpath "$GITHUB_WORKSPACE/.venv-wheel/bin/python" \
             --verifytypes celnn --ignoreexternal
