@@ -53,13 +53,16 @@ Never widen a tolerance merely to make a test pass.
 ## Public contracts
 
 Public API, persisted artifacts, errors, supported Python versions, optional extras,
-typing metadata, wheel/sdist contents, and installed behavior are product contracts.
+typing metadata, dependency floors, wheel/sdist contents, and installed behavior are
+product contracts.
 
 - keep the top-level API deliberate; `celnn.__all__` is its owner;
 - adding a public symbol creates a compatibility obligation;
 - optional dependencies must remain optional at base import time;
 - reject invalid public inputs explicitly rather than silently coercing meaning;
 - no silent fallback, dtype change, approximation, overwrite, or scientific claim;
+- declared lower dependency bounds must be executable or raised to the oldest version
+  actually supported;
 - do not introduce convergence or stability claims without a defensible definition
   and oracle.
 
@@ -91,7 +94,7 @@ meaning.
 ## Python design
 
 - Python >= 3.10; do not add an upper cap without a known incompatibility.
-- Keep setuptools, pytest, Ruff, and Mypy unless a demonstrated problem requires
+- Keep setuptools, pytest, Ruff, and Pyright unless a demonstrated problem requires
   replacement.
 - Keep modules cohesive and dependency direction obvious.
 - Prefer functions and dataclasses to framework-like abstractions.
@@ -129,11 +132,14 @@ generic engineering skill that duplicates those responsibilities.
 
 Evidence must match the claim.
 
-- typing proves type contracts, not numerical correctness;
-- coverage proves execution, not correctness;
+- Ruff proves selected static Python invariants, not runtime behavior;
+- Pyright strict proves static type contracts, not numerical correctness;
+- `pyright --verifytypes` checks the installed `py.typed` public surface, not runtime
+  semantics;
+- coverage proves execution, not correctness and is not a project gate by default;
 - unit tests prove observed cases/properties, not every scientific claim;
 - differential/metamorphic/analytical tests are preferred for scientific equivalence;
-- wheel/sdist smoke tests prove packaging/installability, not source-checkout behavior;
+- built-distribution checks prove packaging/installability, not source-checkout behavior;
 - benchmarks are required before performance architecture changes.
 
 Base-install tests must run without Torch, CuPy, SciPy, Pillow, Matplotlib, or DEAP.

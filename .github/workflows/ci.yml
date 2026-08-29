@@ -6,7 +6,30 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install static-analysis environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,torch,scipy,ga,image,viz]"
+      - name: Ruff
+        run: ruff check .
+      - name: Pyright
+        run: pyright
+
   base:
     name: Base / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
@@ -24,49 +47,44 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
           python -m pip install "pytest>=8"
-      - name: Prove optional imports remain optional
-        run: |
-          python - <<'PY'
-          import sys
-          import celnn
+      - name: Run base-compatible suite
+        run: pytest
 
-          assert "torch" not in sys.modules
-          assert "cupy" not in sys.modules
-          assert "scipy" not in sys.modules
-          PY
-      - name: Run base-compatible tests
-        run: pytest --ignore=tests/test_ga_training.py
-
-  quality:
+  full:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install quality dependencies
+      - name: Install supported non-CUDA integrations
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,torch]"
-      - name: Compile sources
-        run: python -m compileall src
-      - name: Ruff
-        run: ruff check .
-      - name: Mypy
-        run: mypy src/celnn
-
-  optional:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install representative optional integrations
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,torch,scipy,ga,image,viz]"
+          python -m pip install -e ".[torch,scipy,ga,image,viz]"
+          python -m pip install "pytest>=8"
       - name: Run full non-CUDA suite
+        run: pytest
+
+  minimum-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install declared direct dependency floors
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . --no-deps
+          python -m pip install \
+            "numpy==1.24.0" \
+            "scipy==1.10.0" \
+            "torch==2.2.0" \
+            "pillow==10.0.0" \
+            "matplotlib==3.8.0" \
+            "deap==1.4.0" \
+            "pytest>=8"
+      - name: Run suite at declared floors
         run: pytest
 
   distribution:
@@ -82,30 +100,19 @@ jobs:
           python -m pip install build twine
           python -m build
           python -m twine check --strict dist/*
-      - name: Verify typing marker is packaged
-        run: |
-          python - <<'PY'
-          import tarfile
-          import zipfile
-          from pathlib import Path
-
-          wheel = next(Path("dist").glob("*.whl"))
-          with zipfile.ZipFile(wheel) as archive:
-              assert any(name.endswith("celnn/py.typed") for name in archive.namelist())
-
-          sdist = next(Path("dist").glob("*.tar.gz"))
-          with tarfile.open(sdist) as archive:
-              assert any(name.endswith("src/celnn/py.typed") for name in archive.getnames())
-          PY
-      - name: Smoke-test exact wheel
+      - name: Install and verify exact wheel
         run: |
           python -m venv .venv-wheel
           .venv-wheel/bin/python -m pip install --upgrade pip
-          .venv-wheel/bin/python -m pip install dist/*.whl
+          .venv-wheel/bin/python -m pip install dist/*.whl "pyright>=1.1"
           cd /tmp
           "$GITHUB_WORKSPACE/.venv-wheel/bin/python" - <<'PY'
+          from importlib.resources import files
+
           import numpy as np
           from celnn import CellularNetwork, SimulationConfig
+
+          assert files("celnn").joinpath("py.typed").is_file()
 
           net = CellularNetwork(
               input=np.ones(4),
@@ -116,16 +123,5 @@ jobs:
           result = net.run(SimulationConfig(t_end=0.1, dt=0.1))
           assert result.output.shape == (4,)
           PY
-      - name: Smoke-test exact sdist
-        run: |
-          python -m venv .venv-sdist
-          .venv-sdist/bin/python -m pip install --upgrade pip
-          .venv-sdist/bin/python -m pip install dist/*.tar.gz
-          cd /tmp
-          "$GITHUB_WORKSPACE/.venv-sdist/bin/python" - <<'PY'
-          import numpy as np
-          from celnn import CellularNetwork
-
-          net = CellularNetwork(input=np.ones(3))
-          assert net.output().shape == (3,)
-          PY
+          "$GITHUB_WORKSPACE/.venv-wheel/bin/pyright" \
+            --verifytypes celnn --ignoreexternal

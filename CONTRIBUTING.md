@@ -4,7 +4,7 @@
 
 ```bash
 conda env create -f environment.yml
-conda activate pycelnn
+conda activate celnn
 pip install -e . --no-deps
 ```
 
@@ -18,11 +18,10 @@ conda env update -f environment.yml --prune
 
 1. Create a feature branch.
 2. Make focused changes with tests.
-3. Run `python -m compileall src`.
-4. Run `pytest`.
-5. Run `ruff check .`.
-6. Run `mypy src/celnn/core/network.py src/celnn/core/simulation.py src/celnn/core/solvers.py`.
-7. Open a pull request with a concise description of the change and its motivation.
+3. Run `ruff check .`.
+4. Run `pyright`.
+5. Run `pytest`.
+6. Open a pull request with a concise description of the change and its motivation.
 
 ## Style guidelines
 
@@ -33,10 +32,11 @@ conda env update -f environment.yml --prune
 
 ## Testing
 
-The test suite is written with `pytest`. GPU runtime tests also skip
-cleanly when CuPy/CUDA are unavailable.
+The test suite is written with `pytest`. Optional integration tests skip cleanly when
+their dependency is unavailable; the full CI lane installs the supported non-CUDA
+extras explicitly.
 
 ```bash
-conda activate pycelnn
+conda activate celnn
 pytest
 ```
