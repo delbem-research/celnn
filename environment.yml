@@ -1,4 +1,4 @@
-name: pycelnn
+name: celnn
 channels:
   - conda-forge
 dependencies:

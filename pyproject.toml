@@ -56,20 +56,12 @@ dev = [
   "ruff>=0.8",
   "mypy>=1.11",
 ]
-all = [
-  "scipy>=1.10",
-  "cupy-cuda12x>=13.0",
-  "nvidia-cuda-nvrtc-cu12>=12.0",
-  "pillow>=10.0",
-  "matplotlib>=3.8",
-  "deap>=1.4",
-]
 
 [project.urls]
-Homepage = "https://github.com/tomieiro/libPyCelNN"
-Repository = "https://github.com/tomieiro/libPyCelNN"
-Documentation = "https://github.com/tomieiro/libPyCelNN/tree/main/docs"
-Issues = "https://github.com/tomieiro/libPyCelNN/issues"
+Homepage = "https://github.com/delbem-research/celnn"
+Repository = "https://github.com/delbem-research/celnn"
+Documentation = "https://github.com/delbem-research/celnn/tree/main/docs"
+Issues = "https://github.com/delbem-research/celnn/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -77,6 +69,9 @@ include-package-data = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+celnn = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -98,3 +93,4 @@ strict_optional = true
 check_untyped_defs = true
 disallow_incomplete_defs = true
 no_implicit_optional = true
+ignore_missing_imports = true

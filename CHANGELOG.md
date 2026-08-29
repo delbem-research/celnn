@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### Changed
+
+- Consolidated scientific contracts for the next minor release: classical
+  networks support `float32`/`float64`, native solvers preserve the selected
+  dtype, and SciPy `solve_ivp` is explicitly `float64` only.
+- Removed the previous heuristic convergence and generic timestep-stability
+  claims instead of preserving scientifically ambiguous API.
+- Versioned public JSON artifacts with schema v1, bounded legacy-v0 reading,
+  strict validation, CPU-portable network loading, and atomic writes.
+- Removed persisted backend/device identity from network artifacts; dtype
+  remains part of the semantic representation.
+- Removed the umbrella `all` extra in favor of explicit capability extras.
+- Made `pyproject.toml` the release-version owner and derive
+  `celnn.__version__` from installed package metadata.
+- Expanded the verification contract to the supported Python matrix,
+  package-wide Mypy, optional-dependency isolation, and installed wheel/sdist
+  smoke tests.
+- Normalized project metadata and documentation to
+  `https://github.com/delbem-research/celnn`.
+
+### Added
+
+- Added `AGENTS.md` with the repository's durable scientific and engineering
+  maintainer contract.
+- Added `py.typed` and a contract test for the deliberate top-level
+  `celnn.__all__` API.
+
+### Existing unreleased work
+
 - Added modular PyTorch fast-weight plasticity with explicit per-sequence
   `PlasticityState`, reusable `HebbianRule` and `OjaRule` updates, configurable
   slow/fast-weight composition, and a functional `PlasticLinear` layer.

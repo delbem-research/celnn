@@ -15,43 +15,35 @@ bias terms.
 pip install celnn
 ```
 
-For optional SciPy, image, and plotting support:
+Install only the optional capabilities you need:
 
 ```bash
-pip install celnn[all]
-```
-
-For GPU execution through CuPy/CUDA:
-
-```bash
-pip install celnn[gpu]
-```
-
-For genetic-algorithm-based template training (powered by DEAP):
-
-```bash
-pip install celnn[ga]
-```
-
-For differentiable templates and backpropagation through CelNN evolution:
-
-```bash
+pip install "celnn[scipy]"
+pip install "celnn[image]"
+pip install "celnn[viz]"
+pip install "celnn[ga]"
 pip install "celnn[torch]"
+pip install "celnn[gpu]"
 ```
 
-The same optional API includes modular Hebbian/Oja fast-weight plasticity with
-explicit per-sequence state. See [the plasticity guide](docs/plasticity.md).
+The `torch` API includes differentiable CelNN evolution and modular
+Hebbian/Oja fast-weight plasticity with explicit per-sequence state.
+See [the plasticity guide](docs/plasticity.md).
 
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 
+The classical NumPy/CuPy network supports `float32` and `float64`; the
+default is `float64`. Native Euler solvers preserve the network dtype.
+The optional SciPy `solve_ivp` path is intentionally `float64` only.
+
 ## Development and verification
 
-Create the canonical development environment:
+Create the optional Conda development environment:
 
 ```bash
 conda env create -f environment.yml
-conda activate pycelnn
+conda activate celnn
 pip install -e . --no-deps
 ```
 
@@ -61,7 +53,7 @@ Run local checks:
 python -m compileall src
 pytest
 ruff check .
-mypy src/celnn/core/network.py src/celnn/core/simulation.py src/celnn/core/solvers.py
+mypy src/celnn
 ```
 
 ## Quick start
@@ -105,41 +97,28 @@ print(result.output.shape)
 * Optional image, signal, grid, serialization, and visualization helpers.
 * Optional genetic-algorithm-based template trainer (DEAP).
 * Optional `DifferentiableCellularNetwork` with learnable PyTorch templates.
+* Optional PyTorch plasticity and associative-memory APIs.
 * Demonstrative built-in templates for image processing, logic, diffusion, and pattern formation.
 * Tests, examples, and technical documentation aimed at research and experimentation.
 
-## Minimal example
+## Persistence
 
-```python
-import numpy as np
-from celnn import CellularNetwork, SimulationConfig
-from celnn.activations import tanh_activation
+The public JSON helpers in `celnn.io.serialization` write versioned,
+validated artifacts atomically. New files use schema version 1. Loaders also
+accept the current unversioned pre-0.4 representation as bounded legacy input.
 
-signal = np.sin(np.linspace(0, 8 * np.pi, 512))
-
-net = CellularNetwork(
-    input=signal,
-    feedback=np.array([0.2, 1.0, 0.2]),
-    control=np.array([0.1, 0.8, 0.1]),
-    bias=0.0,
-    activation=tanh_activation,
-    boundary="reflect",
-)
-
-result = net.run(SimulationConfig(t_end=5.0, dt=0.05))
-print(result.output[:5])
-```
+Saved network artifacts preserve model meaning, including dtype, but do not
+bind a model to the backend/device on which it happened to run. Loading
+defaults to CPU unless another device is explicitly requested.
 
 ## Implementation status
 
-- Maturity: alpha (`0.1.x`), focused on regular-grid CelNN systems.
-- CI-verified baseline: CPU/NumPy dynamics, SciPy solver path, templates,
-  serialization, and image/signal utilities.
-- GPU coverage:
-  - deterministic CuPy backend behavior is tested in CI with a stubbed
-    CuPy runtime.
-  - real CUDA execution tests run when CuPy and a CUDA device are
-    available (tests skip otherwise).
+- Maturity: alpha; public contracts may intentionally evolve before 1.0.
+- CI verifies the base package on every advertised Python version, runs
+  package-wide static checks, exercises representative optional integrations,
+  and smoke-tests built wheel/sdist artifacts.
+- GPU semantic parity is covered with deterministic backend tests; real CUDA
+  claims require a CUDA-capable environment and are not inferred from stubs.
 
 ## License
 
