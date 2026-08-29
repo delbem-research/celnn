@@ -34,10 +34,10 @@ if TYPE_CHECKING:
     from .plasticity import (
         HebbianRule,
         OjaRule,
-        PlasticLinear,
         Plasticity,
         PlasticityRule,
         PlasticityState,
+        PlasticLinear,
     )
 
 
