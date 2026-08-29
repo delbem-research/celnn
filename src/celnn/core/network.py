@@ -17,6 +17,7 @@ from .exceptions import CelNNError
 from .result import SimulationResult
 from .simulation import SimulationConfig
 from .solvers import solve
+from .steppers import euler_step
 from .templates import Template
 from .topology import RegularGridTopology
 from .validation import (
@@ -24,6 +25,36 @@ from .validation import (
     ensure_broadcastable,
     validate_initial_state,
 )
+
+_ALLOWED_SERIALIZED_KEYS = {
+    "input",
+    "initial_state",
+    "current_state",
+    "feedback",
+    "control",
+    "bias",
+    "activation",
+    "boundary",
+    "boundary_value",
+    "dtype",
+    "metadata",
+}
+_SUPPORTED_DTYPES = frozenset(
+    {np.dtype(np.float32), np.dtype(np.float64)}
+)
+
+
+def _normalize_dtype(value: Any | None) -> np.dtype[Any]:
+    try:
+        dtype = np.dtype(np.float64 if value is None else value)
+    except (TypeError, ValueError) as exc:
+        raise CelNNError(f"Unsupported dtype {value!r}.") from exc
+    if dtype not in _SUPPORTED_DTYPES:
+        raise CelNNError(
+            "dtype must be float32 or float64, "
+            f"got {dtype.name!r}."
+        )
+    return dtype
 
 
 class CellularNetwork:
@@ -43,8 +74,8 @@ class CellularNetwork:
         device: str = "cpu",
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        input_dtype = dtype if dtype is not None else float
-        self.input = coerce_ndarray(input, dtype=input_dtype, name="input")
+        self.dtype = _normalize_dtype(dtype)
+        self.input = coerce_ndarray(input, dtype=self.dtype, name="input")
         self.state_shape = tuple(self.input.shape)
 
         self.topology = RegularGridTopology(
@@ -54,10 +85,11 @@ class CellularNetwork:
         )
         self.boundary = normalize_boundary_mode(boundary)
         self.boundary_value = float(boundary_value)
-        self.dtype = np.dtype(dtype or float)
         self.metadata = deepcopy(metadata) if metadata is not None else {}
+        if not isinstance(device, str):
+            raise CelNNError("device must be a string.")
         self.device = device.lower().strip()
-        self.backend = get_backend(device)
+        self.backend = get_backend(self.device)
 
         self.feedback = self._resolve_template_array(
             value=feedback,
@@ -186,7 +218,10 @@ class CellularNetwork:
         """Advance one explicit Euler step and return the new state."""
         if dt <= 0:
             raise CelNNError(f"dt must be positive, got {dt}.")
-        self.state = self.state + float(dt) * self.derivative(self.state)
+        self.state = np.asarray(
+            euler_step(self.state, float(dt), self.derivative(self.state)),
+            dtype=self.dtype,
+        )
         return self.state.copy()
 
     def run(
@@ -195,12 +230,7 @@ class CellularNetwork:
     ) -> SimulationResult:
         """Run the simulation and return a result object."""
         chosen_config = config if config is not None else SimulationConfig()
-        warnings: list[str] = []
-        if chosen_config.stability_checks and chosen_config.dt > 1.0:
-            warnings.append(
-                "dt > 1.0 may be numerically unstable for explicit schemes."
-            )
-        return solve(self, chosen_config, warnings=warnings)
+        return solve(self, chosen_config)
 
     def reset(self, initial_state: Any | None = None) -> None:
         """Reset the internal state."""
@@ -215,7 +245,7 @@ class CellularNetwork:
         self.state = initial_array.copy()
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize the network configuration and current state."""
+        """Serialize the semantic network configuration and current state."""
         activation_key = activation_name(self.activation)
         if activation_key is None:
             raise CelNNError(
@@ -234,14 +264,38 @@ class CellularNetwork:
             "boundary": self.boundary,
             "boundary_value": self.boundary_value,
             "dtype": self.dtype.name,
-            "device": self.device,
-            "backend": self.backend.name,
             "metadata": deepcopy(self.metadata),
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CellularNetwork":
-        """Restore a network from a serialized dictionary."""
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        *,
+        device: str = "cpu",
+    ) -> "CellularNetwork":
+        """Restore a validated network from semantic serialized state."""
+        if not isinstance(data, dict):
+            raise CelNNError("CellularNetwork data must be a dictionary.")
+        unknown = set(data) - _ALLOWED_SERIALIZED_KEYS
+        if unknown:
+            names = ", ".join(sorted(unknown))
+            raise CelNNError(f"Unknown CellularNetwork fields: {names}.")
+        if "input" not in data:
+            raise CelNNError("CellularNetwork data is missing 'input'.")
+        for name in ("activation", "boundary", "dtype"):
+            if name in data and not isinstance(data[name], str):
+                raise CelNNError(f"{name} must be a string.")
+        metadata = data.get("metadata", {})
+        if not isinstance(metadata, dict):
+            raise CelNNError("metadata must be a dictionary.")
+
+        boundary_value = data.get("boundary_value", 0.0)
+        if isinstance(boundary_value, bool) or not isinstance(
+            boundary_value, (int, float)
+        ):
+            raise CelNNError("boundary_value must be a real number.")
+
         network = cls(
             input=data["input"],
             initial_state=data.get("initial_state"),
@@ -250,12 +304,14 @@ class CellularNetwork:
             bias=data.get("bias", 0.0),
             activation=data.get("activation", "piecewise_linear"),
             boundary=data.get("boundary", "constant"),
-            boundary_value=float(data.get("boundary_value", 0.0)),
+            boundary_value=float(boundary_value),
             dtype=data.get("dtype"),
-            device=data.get("device", "cpu"),
-            metadata=deepcopy(data.get("metadata", {})),
+            device=device,
+            metadata=deepcopy(metadata),
         )
         current_state = data.get("current_state")
         if current_state is not None:
-            network.state = np.asarray(current_state, dtype=network.dtype)
+            current_array = np.asarray(current_state, dtype=network.dtype)
+            validate_initial_state(current_array, network.state_shape)
+            network.state = current_array
         return network

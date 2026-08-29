@@ -9,6 +9,34 @@ import numpy as np
 
 from .exceptions import SolverError
 
+_ALLOWED_KEYS = {
+    "t_start",
+    "t_end",
+    "dt",
+    "solver",
+    "return_trajectory",
+    "store_every",
+    "progress",
+}
+
+
+def _number(value: Any, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise SolverError(f"{name} must be a real number.")
+    return float(value)
+
+
+def _boolean(value: Any, name: str) -> bool:
+    if not isinstance(value, bool):
+        raise SolverError(f"{name} must be a boolean.")
+    return value
+
+
+def _integer(value: Any, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise SolverError(f"{name} must be an integer.")
+    return value
+
 
 @dataclass(slots=True)
 class SimulationConfig:
@@ -20,7 +48,6 @@ class SimulationConfig:
     solver: str = "euler"
     return_trajectory: bool = False
     store_every: int = 1
-    stability_checks: bool = True
     progress: bool = False
 
     def __post_init__(self) -> None:
@@ -36,6 +63,8 @@ class SimulationConfig:
                 "store_every must be a positive integer, "
                 f"got {self.store_every}."
             )
+        if not isinstance(self.solver, str):
+            raise SolverError("solver must be a string.")
         self.solver = self.solver.lower().strip()
 
     def time_points(self) -> np.ndarray:
@@ -62,20 +91,30 @@ class SimulationConfig:
             "solver": self.solver,
             "return_trajectory": self.return_trajectory,
             "store_every": self.store_every,
-            "stability_checks": self.stability_checks,
             "progress": self.progress,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SimulationConfig":
-        """Restore a configuration from a dictionary."""
+        """Restore a validated configuration from a dictionary."""
+        if not isinstance(data, dict):
+            raise SolverError("SimulationConfig data must be a dictionary.")
+        unknown = set(data) - _ALLOWED_KEYS
+        if unknown:
+            names = ", ".join(sorted(unknown))
+            raise SolverError(f"Unknown SimulationConfig fields: {names}.")
+
+        solver = data.get("solver", "euler")
+        if not isinstance(solver, str):
+            raise SolverError("solver must be a string.")
         return cls(
-            t_start=float(data.get("t_start", 0.0)),
-            t_end=float(data.get("t_end", 1.0)),
-            dt=float(data.get("dt", 0.01)),
-            solver=data.get("solver", "euler"),
-            return_trajectory=bool(data.get("return_trajectory", False)),
-            store_every=int(data.get("store_every", 1)),
-            stability_checks=bool(data.get("stability_checks", True)),
-            progress=bool(data.get("progress", False)),
+            t_start=_number(data.get("t_start", 0.0), "t_start"),
+            t_end=_number(data.get("t_end", 1.0), "t_end"),
+            dt=_number(data.get("dt", 0.01), "dt"),
+            solver=solver,
+            return_trajectory=_boolean(
+                data.get("return_trajectory", False), "return_trajectory"
+            ),
+            store_every=_integer(data.get("store_every", 1), "store_every"),
+            progress=_boolean(data.get("progress", False), "progress"),
         )

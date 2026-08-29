@@ -50,26 +50,30 @@ def stubbed_cupy_backend(monkeypatch):
     return CuPyBackend()
 
 
-def test_cupy_backend_1d_matches_numpy_with_stub(stubbed_cupy_backend):
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_cupy_backend_1d_matches_numpy_and_preserves_dtype(
+    stubbed_cupy_backend, dtype
+):
     numpy_backend = NumPyBackend()
-    array = np.array([1.0, 2.0, 3.0, 4.0], dtype=float)
-    kernel = np.array([0.25, 0.5, 0.25], dtype=float)
+    array = np.array([1.0, 2.0, 3.0, 4.0], dtype=dtype)
+    kernel = np.array([0.25, 0.5, 0.25], dtype=dtype)
     for mode in ("constant", "wrap", "reflect", "nearest", "mirror"):
         expected = numpy_backend.aggregate_local(array, kernel, mode=mode)
         actual = stubbed_cupy_backend.aggregate_local(array, kernel, mode=mode)
         assert np.allclose(actual, expected)
+        assert actual.dtype == np.dtype(dtype)
 
 
 def test_cupy_backend_2d_matches_numpy_with_stub(stubbed_cupy_backend):
     numpy_backend = NumPyBackend()
-    array = np.arange(25.0).reshape(5, 5)
+    array = np.arange(25.0, dtype=np.float32).reshape(5, 5)
     kernel = np.array(
         [
             [0.0, 1.0, 0.0],
             [1.0, 4.0, 1.0],
             [0.0, 1.0, 0.0],
         ],
-        dtype=float,
+        dtype=np.float32,
     )
     expected = numpy_backend.aggregate_local(array, kernel, mode="reflect")
     actual = stubbed_cupy_backend.aggregate_local(
@@ -78,6 +82,7 @@ def test_cupy_backend_2d_matches_numpy_with_stub(stubbed_cupy_backend):
         mode="reflect",
     )
     assert np.allclose(actual, expected)
+    assert actual.dtype == np.float32
 
 
 def test_get_backend_auto_falls_back_to_numpy(monkeypatch):
@@ -99,8 +104,11 @@ def test_get_backend_gpu_raises_when_cupy_cannot_initialize(monkeypatch):
         get_backend("gpu")
 
 
-def test_network_runs_with_stubbed_gpu_backend(stubbed_cupy_backend):
-    signal = np.ones(8)
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_network_runs_with_stubbed_gpu_backend(
+    stubbed_cupy_backend, dtype
+):
+    signal = np.ones(8, dtype=dtype)
     net = CellularNetwork(
         input=signal,
         feedback=[0.0, 0.0, 0.0],
@@ -108,8 +116,11 @@ def test_network_runs_with_stubbed_gpu_backend(stubbed_cupy_backend):
         activation="identity",
         boundary="reflect",
         device="gpu",
+        dtype=dtype,
     )
     result = net.run(SimulationConfig(t_end=0.2, dt=0.1))
     assert result.metadata["backend"] == "cupy"
     assert isinstance(result.state, np.ndarray)
     assert isinstance(result.output, np.ndarray)
+    assert result.state.dtype == np.dtype(dtype)
+    assert result.output.dtype == np.dtype(dtype)

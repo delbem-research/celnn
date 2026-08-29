@@ -19,7 +19,7 @@ class CuPyBackend(StencilBackend):
 
     The public `celnn` API still returns NumPy arrays. This backend moves
     stencil aggregation to the GPU and converts the result back to NumPy at
-    the backend boundary.
+    the backend boundary without changing the caller-owned numerical dtype.
     """
 
     name = "cupy"
@@ -43,10 +43,10 @@ class CuPyBackend(StencilBackend):
         return True
 
     def _prepare(self, value: Any) -> Any:
-        return self.cp.asarray(value, dtype=self.cp.float64)
+        return self.cp.asarray(value)
 
     def _zeros_like(self, array: Any) -> Any:
-        return self.cp.zeros_like(array, dtype=self.cp.float64)
+        return self.cp.zeros_like(array)
 
     def _pad(
         self,
@@ -65,11 +65,7 @@ class CuPyBackend(StencilBackend):
     def _fast_path(
         self, array: Any, kernel: Any, *, mode: str, cval: float
     ) -> Any | None:
-        """Use cupyx convolution for ND, where the Python loop is costly.
-
-        1D and 2D keep the shared stencil, which the stubbed-runtime tests
-        compare against the NumPy backend mode by mode.
-        """
+        """Use cupyx convolution for ND, where the Python loop is costly."""
         if array.ndim <= 2:
             return None
         try:
@@ -84,8 +80,8 @@ class CuPyBackend(StencilBackend):
         )
 
     def _finalize(self, result: Any) -> np.ndarray:
-        """Bring the result back to the host; the public API returns NumPy."""
-        return np.asarray(self.cp.asnumpy(result), dtype=float)
+        """Bring the result back to the host without changing its dtype."""
+        return np.asarray(self.cp.asnumpy(result))
 
     @classmethod
     def _import_cupy(cls) -> Any:
@@ -136,7 +132,7 @@ class CuPyBackend(StencilBackend):
             (radius, radius),
             **self._pad_kwargs(mode, cval),
         )
-        result = self.cp.zeros_like(array, dtype=self.cp.float64)
+        result = self.cp.zeros_like(array)
         for index, weight in enumerate(kernel):
             result += weight * padded[index: index + array.shape[0]]
         return result
@@ -149,7 +145,7 @@ class CuPyBackend(StencilBackend):
             ((pad_y, pad_y), (pad_x, pad_x)),
             **self._pad_kwargs(mode, cval),
         )
-        result = self.cp.zeros_like(array, dtype=self.cp.float64)
+        result = self.cp.zeros_like(array)
         height, width = array.shape
         for row in range(kernel.shape[0]):
             row_slice = slice(row, row + height)
