@@ -74,7 +74,7 @@ def test_network_and_config_serialization_roundtrip(tmp_path):
     assert load_config_json(config_path) == config
 
 
-def test_legacy_network_execution_fields_are_accepted_but_not_rewritten(tmp_path):
+def test_legacy_execution_fields_are_not_rewritten(tmp_path):
     signal = np.ones(5)
     net = CellularNetwork(
         input=signal,
