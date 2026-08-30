@@ -114,7 +114,7 @@ def test_run_returns_result_with_convergence_contract():
     }
 
 
-def test_stability_checks_preserve_warning_contract_without_mutating_network_metadata():
+def test_stability_checks_preserve_warning_contract():
     signal = np.ones(5)
     net = CellularNetwork(
         input=signal,
