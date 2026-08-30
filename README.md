@@ -26,6 +26,15 @@ pip install "celnn[torch]"
 pip install "celnn[gpu]"
 ```
 
+The existing compatibility bundle also remains available:
+
+```bash
+pip install "celnn[all]"
+```
+
+The `all` extra preserves the pre-existing SciPy/GPU/image/viz/GA bundle;
+PyTorch remains an explicit `torch` capability.
+
 The `torch` API includes differentiable CelNN evolution and modular
 Hebbian/Oja fast-weight plasticity with explicit per-sequence state.
 See [the plasticity guide](docs/plasticity.md).
@@ -33,14 +42,17 @@ See [the plasticity guide](docs/plasticity.md).
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 
-The classical NumPy/CuPy network supports `float32` and `float64`; the
-default is `float64`. Native Euler solvers preserve the network dtype.
-The optional SciPy `solve_ivp` path is intentionally `float64` only.
+The classical network defaults to `float64`. Explicit dtype behavior remains
+compatibility-sensitive; native `float32` and `float64` execution paths are
+covered directly by the test suite. This consolidation does not impose a new
+`float64`-only restriction on the optional SciPy `solve_ivp` path.
 
 ## Development
 
 For the canonical development setup and local verification workflow, see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+[CONTRIBUTING.md](CONTRIBUTING.md). The repository continues to provide its
+existing Conda development environment while Pyright is the maintained static
+type checker.
 
 ## Quick start
 
@@ -61,7 +73,12 @@ net = CellularNetwork(
 
 result = net.run(SimulationConfig(t_end=1.0, dt=0.01))
 print(result.output.shape)
+print(result.convergence)
 ```
+
+`SimulationConfig.stability_checks` and `SimulationResult.convergence` remain
+part of the established public interface. Scientific redesign of those
+diagnostics is intentionally separate from the current consolidation work.
 
 ## Documentation shortcuts
 
@@ -89,20 +106,26 @@ print(result.output.shape)
 
 ## Persistence
 
-The public JSON helpers in `celnn.io.serialization` write versioned,
-validated artifacts atomically. New files use schema version 1. Loaders also
-accept the current unversioned pre-0.4 representation as bounded legacy input.
+The public JSON helpers in `celnn.io.serialization` preserve the established flat
+JSON representation and write files atomically. Loading remains compatible with
+previously accepted payloads rather than introducing a new schema envelope or
+stricter migration contract in this consolidation.
 
-Saved network artifacts preserve model meaning, including dtype, but do not
-bind a model to the backend/device on which it happened to run. Loading
-defaults to CPU unless another device is explicitly requested.
+Saved network artifacts preserve model meaning, including dtype, but new writes
+do not bind the model to the backend/device on which it happened to run. Loaders
+continue accepting historical payloads containing those operational fields and
+loading defaults to CPU unless another device is explicitly requested.
 
 ## Implementation status
 
-- Maturity: alpha; public contracts may intentionally evolve before 1.0.
+- Maturity: alpha; public contracts may intentionally evolve before 1.0, but
+  compatibility changes should be explicit rather than incidental.
 - CI verifies the base package on every advertised Python version, runs
-  package-wide static checks, exercises representative optional integrations,
-  and smoke-tests built wheel/sdist artifacts.
+  package-wide Ruff/Pyright checks, exercises representative optional
+  integrations and dependency floors, and smoke-tests built wheel/sdist
+  artifacts.
+- The installed wheel ships `py.typed` and its public typing surface is verified
+  from the built artifact.
 - GPU semantic parity is covered with deterministic backend tests; real CUDA
   claims require a CUDA-capable environment and are not inferred from stubs.
 

@@ -2,18 +2,25 @@
 
 ## Development setup
 
-`pyproject.toml` is the source of truth for Python dependencies, optional
-capabilities, and development tools. Install the package with the minimal
-extras needed for the package-wide static checks:
+CELNN keeps the existing Conda development environment for compatibility while
+`pyproject.toml` remains the package manifest for installable dependencies and
+optional capabilities.
+
+Create the maintained development environment and install the package with the
+Torch extra required by the package-wide Pyright analysis:
 
 ```bash
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev,torch]"
+conda env create -f environment.yml
+conda activate pycelnn
+python -m pip install -e ".[torch]"
 ```
 
-The `torch` extra is included because the maintained public implementation
-contains optional `torch.nn.Module` subclasses that Pyright analyzes when
-running the package-wide static gate.
+To update an existing environment:
+
+```bash
+conda env update -f environment.yml --prune
+python -m pip install -e ".[torch]"
+```
 
 ## Development workflow
 
@@ -26,11 +33,11 @@ running the package-wide static gate.
 
 ## Full non-CUDA integration suite
 
-The default workflow intentionally does not install every optional capability.
-To reproduce the CI lane that exercises all supported non-CUDA integrations:
+The default workflow does not require every optional execution capability. To
+reproduce the CI lane that exercises all supported non-CUDA integrations:
 
 ```bash
-python -m pip install -e ".[dev,torch,scipy,ga,image,viz]"
+python -m pip install -e ".[torch,scipy,ga,image,viz]"
 pytest
 ```
 

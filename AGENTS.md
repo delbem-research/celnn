@@ -8,8 +8,8 @@ treat that as a contract conflict and reconcile it before changing behavior.
 ## Engineering objective
 
 Maintain CELNN as the smallest robust public scientific Python library that preserves
-its mathematical meaning across supported execution modes and makes incorrect changes
-easy to falsify.
+its mathematical meaning and established compatibility across supported execution
+modes, while making incorrect changes easy to falsify.
 
 Optimize for scientific correctness, explicit contracts, predictable failure,
 reproducibility, compatibility, maintainability, and minimum necessary complexity.
@@ -33,14 +33,20 @@ remaining mechanism. `NO_CHANGE` and deletion are valid outcomes.
   steppers instead of inlining updates.
 - stencil and boundary semantics have one shared definition; backends implement
   execution, not alternate mathematics.
-- classical `CellularNetwork` owns its numerical dtype. Supported classical dtypes are
-  `float32` and `float64`; default is `float64`.
-- native classical solvers preserve the network dtype end to end.
-- SciPy `solve_ivp` is a `float64`-only execution path.
+- classical `CellularNetwork` owns its numerical dtype. The default remains
+  `float64`; accepted explicit dtype behavior is compatibility-sensitive and must not
+  be narrowed in unrelated changes.
+- native execution must not silently change an explicitly selected dtype where that
+  execution path already preserves it.
+- solver/backend restrictions are public compatibility decisions; do not add new
+  dtype or solver exclusions without dedicated evidence and an explicit change.
 - PyTorch dtype/device follow normal `torch.nn.Module` parameter/buffer ownership.
 - backend/device choices may change execution and cost, not the mathematical model.
 - plasticity and associative-memory mutable state must remain explicit; do not hide
   sequence/conversation state inside modules.
+- existing `convergence` and `stability_checks` interfaces are compatibility-sensitive.
+  Renaming, removing, or scientifically redefining them belongs in a dedicated change,
+  not incidental consolidation work.
 
 For scientific behavior use:
 definition -> representation -> invariant -> oracle -> evidence.
@@ -59,12 +65,13 @@ product contracts.
 - keep the top-level API deliberate; `celnn.__all__` is its owner;
 - adding a public symbol creates a compatibility obligation;
 - optional dependencies must remain optional at base import time;
-- reject invalid public inputs explicitly rather than silently coercing meaning;
-- no silent fallback, dtype change, approximation, overwrite, or scientific claim;
+- compatibility-sensitive permissive behavior must not be tightened accidentally;
+- new public behavior should fail explicitly rather than silently coercing meaning;
+- no new silent fallback, dtype change, approximation, overwrite, or scientific claim;
 - declared lower dependency bounds must be executable or raised to the oldest version
   actually supported;
-- do not introduce convergence or stability claims without a defensible definition
-  and oracle.
+- changes to convergence/stability semantics require an explicit scientific contract,
+  oracle, and dedicated migration decision.
 
 ## Semantic versus operational state
 
@@ -77,25 +84,32 @@ Operational examples: backend implementation, device placement, host/device tran
 strategy, CI/runtime scheduling.
 
 A saved model must not require the original execution device in order to preserve its
-meaning.
+meaning. Loaders may continue accepting historical operational fields for compatibility,
+but new durable state should not treat backend/device identity as model truth.
 
 ## Persistence
 
-`celnn.io.serialization` owns JSON artifact compatibility/versioning.
+`celnn.io.serialization` owns JSON artifact compatibility.
 
-- new artifacts use the current explicit schema envelope;
-- loaders validate envelope, schema version, kind, and payload;
-- legacy compatibility must be small, explicit, one-way, and tested;
-- unknown incompatible versions fail explicitly;
-- never add a migration framework before a concrete supported migration exists;
+- preserve the established flat JSON representation unless a dedicated migration
+  explicitly changes it;
+- compatibility with previously accepted payloads is a product contract;
+- loader strictness must not be increased incidentally when external artifacts may
+  exist outside the repository;
+- historical backend/device fields may be accepted on read while remaining absent
+  from new durable model truth;
 - durable writes are atomic;
-- free-form user metadata is the exception to otherwise closed structural fields.
+- a future schema envelope, versioning migration, or stricter structural validation
+  requires its own explicit compatibility design and evidence.
 
 ## Python design
 
 - Python >= 3.10; do not add an upper cap without a known incompatibility.
 - Keep setuptools, pytest, Ruff, and Pyright unless a demonstrated problem requires
   replacement.
+- Keep the existing Conda development environment unless a dedicated change retires it.
+- Preserve established optional extras, including compatibility umbrella extras, unless
+  a dedicated packaging change intentionally migrates them.
 - Keep modules cohesive and dependency direction obvious.
 - Prefer functions and dataclasses to framework-like abstractions.
 - Use classes for real stateful lifecycle, public data contracts, or protocols.
@@ -105,7 +119,8 @@ meaning.
 - `Any` is acceptable only at genuine foreign-library seams.
 - Preserve lazy optional imports while making public optional symbols statically
   discoverable.
-- Validate at public, deserialization, optional-dependency, and backend boundaries.
+- Validate new public, optional-dependency, and backend boundaries without silently
+  tightening established compatibility behavior.
 - Preserve causal, channel, shape, dtype, gradient, and state-ownership semantics.
 
 ## Change protocol
@@ -133,7 +148,7 @@ generic engineering skill that duplicates those responsibilities.
 Evidence must match the claim.
 
 - Ruff proves selected static Python invariants, not runtime behavior;
-- Pyright strict proves static type contracts, not numerical correctness;
+- Pyright proves maintained static type contracts, not numerical correctness;
 - `pyright --verifytypes` checks the installed `py.typed` public surface, not runtime
   semantics;
 - coverage proves execution, not correctness and is not a project gate by default;
@@ -156,7 +171,8 @@ Remove stale statements instead of adding historical explanation unless users ne
 ## Definition of done
 
 A change is complete only when every affected material claim has appropriate evidence,
-the public/installable artifact still behaves as intended, no invalid state is silently
-accepted, and no equivalent simpler design preserves the same guarantees.
+the public/installable artifact still behaves as intended, established compatibility is
+not narrowed accidentally, and no equivalent simpler design preserves the same
+guarantees.
 
 Passing tests alone is evidence, not a universal proof of correctness.

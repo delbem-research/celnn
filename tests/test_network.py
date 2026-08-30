@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from celnn import CellularNetwork, SimulationConfig
-from celnn.core.exceptions import CelNNError, ShapeMismatchError
+from celnn.core.exceptions import ShapeMismatchError
 from celnn.core.steppers import euler_step
 from celnn.templates import Template
 
@@ -38,10 +38,13 @@ def test_network_preserves_supported_dtype(dtype):
     assert result.output.dtype == np.dtype(dtype)
 
 
-@pytest.mark.parametrize("dtype", [np.int64, np.bool_, np.complex128])
-def test_network_rejects_unsupported_dtype(dtype):
-    with pytest.raises(CelNNError, match="float32 or float64"):
-        CellularNetwork(input=np.ones(4), dtype=dtype)
+@pytest.mark.parametrize(
+    "dtype", [np.float16, np.int64, np.bool_, np.complex128]
+)
+def test_network_preserves_legacy_numpy_dtype_acceptance(dtype):
+    net = CellularNetwork(input=np.ones(4), dtype=dtype)
+    assert net.dtype == np.dtype(dtype)
+    assert net.input.dtype == np.dtype(dtype)
 
 
 def test_network_rejects_mismatched_initial_state_shape():
@@ -92,7 +95,7 @@ def test_reset_restores_initial_state():
     assert np.allclose(net.state, np.linspace(-1.0, 1.0, 5))
 
 
-def test_run_returns_result():
+def test_run_returns_result_with_convergence_contract():
     signal = np.ones(5)
     net = CellularNetwork(
         input=signal,
@@ -104,7 +107,27 @@ def test_run_returns_result():
     assert result.state.shape == signal.shape
     assert result.output.shape == signal.shape
     assert result.metadata["backend"] == "numpy"
-    assert not hasattr(result, "convergence")
+    assert result.convergence is not None
+    assert set(result.convergence) == {
+        "max_abs_state_delta",
+        "approx_converged",
+    }
+
+
+def test_stability_checks_preserve_warning_contract_without_mutating_network_metadata():
+    signal = np.ones(5)
+    net = CellularNetwork(
+        input=signal,
+        feedback=[0.0, 0.0, 0.0],
+        control=[0.0, 1.0, 0.0],
+        activation="identity",
+        metadata={"source": "test"},
+    )
+    result = net.run(SimulationConfig(t_end=2.0, dt=1.1))
+    assert result.metadata["warnings"] == [
+        "dt > 1.0 may be numerically unstable for explicit schemes."
+    ]
+    assert net.metadata == {"source": "test"}
 
 
 def test_network_accepts_auto_device():

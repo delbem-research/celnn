@@ -26,36 +26,6 @@ from .validation import (
     validate_initial_state,
 )
 
-_ALLOWED_SERIALIZED_KEYS = {
-    "input",
-    "initial_state",
-    "current_state",
-    "feedback",
-    "control",
-    "bias",
-    "activation",
-    "boundary",
-    "boundary_value",
-    "dtype",
-    "metadata",
-}
-_SUPPORTED_DTYPES = frozenset(
-    {np.dtype(np.float32), np.dtype(np.float64)}
-)
-
-
-def _normalize_dtype(value: Any | None) -> np.dtype[Any]:
-    try:
-        dtype = np.dtype(np.float64 if value is None else value)
-    except (TypeError, ValueError) as exc:
-        raise CelNNError(f"Unsupported dtype {value!r}.") from exc
-    if dtype not in _SUPPORTED_DTYPES:
-        raise CelNNError(
-            "dtype must be float32 or float64, "
-            f"got {dtype.name!r}."
-        )
-    return dtype
-
 
 class CellularNetwork:
     """Continuous-time Cellular Neural Network over a regular grid."""
@@ -89,8 +59,8 @@ class CellularNetwork:
         device: str = "cpu",
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        self.dtype = _normalize_dtype(dtype)
-        self.input = coerce_ndarray(input, dtype=self.dtype, name="input")
+        input_dtype = dtype if dtype is not None else float
+        self.input = coerce_ndarray(input, dtype=input_dtype, name="input")
         self.state_shape = tuple(self.input.shape)
 
         self.topology = RegularGridTopology(
@@ -100,9 +70,8 @@ class CellularNetwork:
         )
         self.boundary = normalize_boundary_mode(boundary)
         self.boundary_value = float(boundary_value)
+        self.dtype = np.dtype(dtype or float)
         self.metadata = deepcopy(metadata) if metadata is not None else {}
-        if not isinstance(device, str):
-            raise CelNNError("device must be a string.")
         self.device = device.lower().strip()
         self.backend = get_backend(self.device)
 
@@ -233,9 +202,8 @@ class CellularNetwork:
         """Advance one explicit Euler step and return the new state."""
         if dt <= 0:
             raise CelNNError(f"dt must be positive, got {dt}.")
-        self.state = np.asarray(
-            euler_step(self.state, float(dt), self.derivative(self.state)),
-            dtype=self.dtype,
+        self.state = euler_step(
+            self.state, float(dt), self.derivative(self.state)
         )
         return self.state.copy()
 
@@ -245,7 +213,12 @@ class CellularNetwork:
     ) -> SimulationResult:
         """Run the simulation and return a result object."""
         chosen_config = config if config is not None else SimulationConfig()
-        return solve(self, chosen_config)
+        warnings: list[str] = []
+        if chosen_config.stability_checks and chosen_config.dt > 1.0:
+            warnings.append(
+                "dt > 1.0 may be numerically unstable for explicit schemes."
+            )
+        return solve(self, chosen_config, warnings=warnings)
 
     def reset(self, initial_state: Any | None = None) -> None:
         """Reset the internal state."""
@@ -289,28 +262,7 @@ class CellularNetwork:
         *,
         device: str = "cpu",
     ) -> "CellularNetwork":
-        """Restore a validated network from semantic serialized state."""
-        if not isinstance(data, dict):
-            raise CelNNError("CellularNetwork data must be a dictionary.")
-        unknown = set(data) - _ALLOWED_SERIALIZED_KEYS
-        if unknown:
-            names = ", ".join(sorted(unknown))
-            raise CelNNError(f"Unknown CellularNetwork fields: {names}.")
-        if "input" not in data:
-            raise CelNNError("CellularNetwork data is missing 'input'.")
-        for name in ("activation", "boundary", "dtype"):
-            if name in data and not isinstance(data[name], str):
-                raise CelNNError(f"{name} must be a string.")
-        metadata = data.get("metadata", {})
-        if not isinstance(metadata, dict):
-            raise CelNNError("metadata must be a dictionary.")
-
-        boundary_value = data.get("boundary_value", 0.0)
-        if isinstance(boundary_value, bool) or not isinstance(
-            boundary_value, (int, float)
-        ):
-            raise CelNNError("boundary_value must be a real number.")
-
+        """Restore a network from a serialized dictionary."""
         network = cls(
             input=data["input"],
             initial_state=data.get("initial_state"),
@@ -319,14 +271,12 @@ class CellularNetwork:
             bias=data.get("bias", 0.0),
             activation=data.get("activation", "piecewise_linear"),
             boundary=data.get("boundary", "constant"),
-            boundary_value=float(boundary_value),
+            boundary_value=float(data.get("boundary_value", 0.0)),
             dtype=data.get("dtype"),
             device=device,
-            metadata=deepcopy(metadata),
+            metadata=deepcopy(data.get("metadata", {})),
         )
         current_state = data.get("current_state")
         if current_state is not None:
-            current_array = np.asarray(current_state, dtype=network.dtype)
-            validate_initial_state(current_array, network.state_shape)
-            network.state = current_array
+            network.state = np.asarray(current_state, dtype=network.dtype)
         return network

@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from celnn import CellularNetwork, SimulationConfig
-from celnn.core.exceptions import SolverError
 
 
 def make_decay_network(dtype=np.float64):
@@ -21,6 +20,7 @@ def test_euler_solver_matches_expected_decay():
     net = make_decay_network()
     result = net.run(SimulationConfig(t_end=0.3, dt=0.1, solver="euler"))
     assert np.allclose(result.state, np.full(5, 0.271), atol=1e-6)
+    assert result.convergence is not None
 
 
 def test_semi_implicit_solver_runs():
@@ -29,6 +29,7 @@ def test_semi_implicit_solver_runs():
         SimulationConfig(t_end=0.3, dt=0.1, solver="semi_implicit_euler")
     )
     assert np.allclose(result.state, np.full(5, 0.2486852), atol=1e-6)
+    assert result.convergence is not None
 
 
 def test_scipy_solver_if_available():
@@ -40,9 +41,14 @@ def test_scipy_solver_if_available():
     assert np.allclose(
         result.state, np.full(5, 1.0 - np.exp(-0.3)), atol=1e-3
     )
+    assert result.convergence is not None
 
 
-def test_scipy_solver_rejects_float32_before_execution():
+def test_scipy_solver_preserves_float32_call_compatibility():
+    pytest.importorskip("scipy")
     net = make_decay_network(np.float32)
-    with pytest.raises(SolverError, match="requires a float64"):
-        net.run(SimulationConfig(t_end=0.3, dt=0.1, solver="solve_ivp"))
+    result = net.run(
+        SimulationConfig(t_end=0.3, dt=0.1, solver="solve_ivp")
+    )
+    assert result.state.shape == net.state_shape
+    assert result.convergence is not None

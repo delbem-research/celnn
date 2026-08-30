@@ -19,17 +19,23 @@ pip install "celnn[viz]"
 pip install "celnn[ga]"
 ```
 
-The base package does not require those optional dependencies.
+The existing compatibility bundle also remains available:
+
+```bash
+pip install "celnn[all]"
+```
+
+The base package does not require optional capabilities. The `all` extra keeps
+the established SciPy/GPU/image/viz/GA bundle; PyTorch remains an explicit
+`torch` capability.
 
 ## Core execution model
 
 `CellularNetwork` is the classical NumPy/CuPy API. Its dtype is part of the
-numerical model representation:
-
-- supported dtypes: `float32`, `float64`;
-- default: `float64`;
-- native `euler` and `semi_implicit_euler` preserve the network dtype;
-- optional SciPy `solve_ivp` is intentionally `float64` only.
+numerical representation. The default is `float64`, and explicitly selected
+dtype behavior is compatibility-sensitive rather than being narrowed by this
+consolidation. Native `float32` and `float64` execution paths are verified
+explicitly.
 
 Backend choice changes execution, not the mathematical model. `device="cpu"`
 uses NumPy, `device="gpu"`/`"cuda"` requires CuPy, and `device="auto"` may select
@@ -59,6 +65,7 @@ net = CellularNetwork(
 
 result = net.run(SimulationConfig(t_end=5.0, dt=0.05))
 print(result.output.shape)
+print(result.convergence)
 ```
 
 ## `SimulationConfig`
@@ -71,6 +78,7 @@ SimulationConfig(
     solver="euler",
     return_trajectory=False,
     store_every=1,
+    stability_checks=True,
     progress=False,
 )
 ```
@@ -79,10 +87,11 @@ Supported solvers:
 
 - `euler`;
 - `semi_implicit_euler`;
-- `solve_ivp` when SciPy is installed and the network dtype is `float64`.
+- `solve_ivp` when SciPy is installed.
 
-CELNN does not currently expose a generic convergence certificate or numerical
-stability-analysis API. Solver diagnostics must not be interpreted as such.
+This consolidation does not add a new dtype-only restriction to `solve_ivp`.
+`stability_checks` remains part of the established configuration interface.
+Its scientific redesign, if needed, belongs in a dedicated change.
 
 ## `SimulationResult`
 
@@ -93,7 +102,12 @@ A result contains:
 - stored `time`;
 - optional `trajectory_state`;
 - optional `trajectory_output`;
-- execution metadata such as solver/backend/device.
+- execution metadata such as solver/backend/device;
+- the established `convergence` diagnostic mapping.
+
+`convergence` is preserved for compatibility. It should not be treated as a
+formal mathematical convergence certificate unless and until a dedicated
+scientific contract defines such semantics.
 
 ## Templates and registries
 
@@ -113,24 +127,16 @@ Public JSON helpers:
 - `save_registry_json` / `load_registry_json`;
 - `save_network_json` / `load_network_json`.
 
-New files use the envelope:
-
-```json
-{
-  "schema_version": 1,
-  "kind": "network",
-  "data": {}
-}
-```
-
-Loaders validate schema version, artifact kind, and payload. They also accept the
-current unversioned pre-0.4 representation as explicit legacy-v0 input, but new
-writes always use schema v1.
+The public helpers preserve the established flat JSON representation. This
+consolidation does not introduce a schema envelope, migration framework, or
+stricter deserialization contract because external artifacts may exist outside
+the repository.
 
 Network artifacts persist semantic state such as templates, state, activation,
-boundary, dtype, and metadata. They do not persist backend/device as durable
-identity. Loading defaults to CPU; request another device explicitly when
-needed.
+boundary, dtype, and metadata. New writes do not persist backend/device as
+durable model identity, while loaders continue accepting historical payloads
+that contain those operational fields. Loading defaults to CPU; request another
+device explicitly when needed.
 
 Writes are atomic.
 
@@ -171,4 +177,5 @@ abstraction merely to add one implementation.
 ## Development verification
 
 For the canonical development setup and local verification workflow, see
-[CONTRIBUTING.md](../CONTRIBUTING.md).
+[CONTRIBUTING.md](../CONTRIBUTING.md). The existing Conda environment remains
+supported, and Pyright is the maintained package-wide static type checker.

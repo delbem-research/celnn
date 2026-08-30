@@ -52,23 +52,9 @@ class TemplateRegistry:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "TemplateRegistry":
-        """Restore a validated registry from a dictionary."""
-        if not isinstance(data, dict):
-            raise CelNNError("TemplateRegistry data must be a dictionary.")
-        unknown = set(data) - {"templates"}
-        if unknown:
-            names = ", ".join(sorted(unknown))
-            raise CelNNError(f"Unknown TemplateRegistry fields: {names}.")
-        items = data.get("templates", [])
-        if not isinstance(items, list):
-            raise CelNNError("templates must be a list.")
-
+        """Restore a registry from a dictionary."""
         registry = cls()
-        for item in items:
-            if not isinstance(item, dict):
-                raise CelNNError(
-                    "Each registry template must be a dictionary."
-                )
+        for item in data.get("templates", []):
             registry.register(Template.from_dict(item))
         return registry
 

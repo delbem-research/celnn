@@ -18,6 +18,7 @@ class SimulationResult:
     trajectory_state: np.ndarray | None = None
     trajectory_output: np.ndarray | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    convergence: dict[str, Any] | None = None
 
     @property
     def has_trajectory(self) -> bool:
