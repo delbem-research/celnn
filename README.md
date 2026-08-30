@@ -37,24 +37,10 @@ The classical NumPy/CuPy network supports `float32` and `float64`; the
 default is `float64`. Native Euler solvers preserve the network dtype.
 The optional SciPy `solve_ivp` path is intentionally `float64` only.
 
-## Development and verification
+## Development
 
-Create the optional Conda development environment:
-
-```bash
-conda env create -f environment.yml
-conda activate celnn
-pip install -e . --no-deps
-```
-
-Run local checks:
-
-```bash
-python -m compileall src
-pytest
-ruff check .
-mypy src/celnn
-```
+For the canonical development setup and local verification workflow, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Quick start
 

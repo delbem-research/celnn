@@ -170,12 +170,5 @@ abstraction merely to add one implementation.
 
 ## Development verification
 
-```bash
-python -m compileall src
-pytest
-ruff check .
-mypy src/celnn
-```
-
-CI additionally checks the advertised Python versions, representative optional
-integrations, and built wheel/sdist artifacts in clean environments.
+For the canonical development setup and local verification workflow, see
+[CONTRIBUTING.md](../CONTRIBUTING.md).

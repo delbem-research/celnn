@@ -24,7 +24,7 @@ jobs:
       - name: Install static-analysis environment
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,torch,scipy,ga,image,viz]"
+          python -m pip install -e ".[dev,torch]"
       - name: Ruff
         run: ruff check .
       - name: Pyright

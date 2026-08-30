@@ -2,26 +2,40 @@
 
 ## Development setup
 
-```bash
-conda env create -f environment.yml
-conda activate celnn
-pip install -e . --no-deps
-```
-
-To update an existing environment:
+`pyproject.toml` is the source of truth for Python dependencies, optional
+capabilities, and development tools. Install the package with the minimal
+extras needed for the package-wide static checks:
 
 ```bash
-conda env update -f environment.yml --prune
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev,torch]"
 ```
+
+The `torch` extra is included because the maintained public implementation
+contains optional `torch.nn.Module` subclasses that Pyright analyzes when
+running the package-wide static gate.
 
 ## Development workflow
 
 1. Create a feature branch.
-2. Make focused changes with tests.
+2. Make focused changes with matching tests.
 3. Run `ruff check .`.
 4. Run `pyright`.
 5. Run `pytest`.
 6. Open a pull request with a concise description of the change and its motivation.
+
+## Full non-CUDA integration suite
+
+The default workflow intentionally does not install every optional capability.
+To reproduce the CI lane that exercises all supported non-CUDA integrations:
+
+```bash
+python -m pip install -e ".[dev,torch,scipy,ga,image,viz]"
+pytest
+```
+
+Real CuPy/CUDA behavior requires a CUDA-capable environment and is not implied
+by the non-CUDA integration suite.
 
 ## Style guidelines
 
@@ -32,11 +46,7 @@ conda env update -f environment.yml --prune
 
 ## Testing
 
-The test suite is written with `pytest`. Optional integration tests skip cleanly when
-their dependency is unavailable; the full CI lane installs the supported non-CUDA
-extras explicitly.
-
-```bash
-conda activate celnn
-pytest
-```
+The test suite is written with `pytest`. Optional integration tests skip cleanly
+when their dependency is unavailable; CI exercises the base package, the
+supported non-CUDA integrations, declared dependency floors, and built
+artifacts separately.

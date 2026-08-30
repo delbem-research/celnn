@@ -1,5 +1,5 @@
 @aicp v=semver:0.3.0 id=libpycelnn kind=python-library summary="celnn: Cellular Neural Network (CelNN) simulation library with templates, optional CuPy GPU execution, differentiable PyTorch templates, and DEAP-based genetic-algorithm training"
-@stack lang=set[enum]:[python] runtime=set[enum]:[cpython>=3.10] infra=set[enum]:[conda,pip] package=list[path]:[pyproject.toml,environment.yml] lock=list[path]:[]
+@stack lang=set[enum]:[python] runtime=set[enum]:[cpython>=3.10] infra=set[enum]:[pip] package=list[path]:[pyproject.toml] lock=list[path]:[]
 @agent read=list[atom]:[@aicp,@stack,@mod,@surface,@resolver,@inv,@task] verify=bool:true update_on_arch_change=bool:true max_context_ratio=float:0.05 mode=guided
 @avoid paths=list[glob]:[**/__pycache__/**,dist/**,build/**,.pytest_cache/**,htmlcov/**]
 @cmd test "pytest"
