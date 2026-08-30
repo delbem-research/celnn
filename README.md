@@ -1,13 +1,8 @@
 # celnn
 
-`celnn` is a reusable Python package for **CelNN
-(Cellular Neural Networks)** as locally connected nonlinear
-dynamical systems over regular grids, signals, and image-like arrays.
+`celnn` is a Python library that makes **Cellular Neural Networks (CelNNs)** practical and reusable for scientific and engineering applications, providing a general computational framework for continuous-time, locally coupled nonlinear dynamical systems over regular grids, signals, and image-like arrays.
 
-Cellular Neural Networks are **not** Convolutional Neural Networks.
-In this project, `CelNN` means a continuous-time cellular dynamical
-system with local coupling, templates, states, outputs, inputs, and
-bias terms.
+In this project, **CelNN** refers to this cellular dynamical-system model, **not** to Convolutional Neural Networks.
 
 ## Installation
 
