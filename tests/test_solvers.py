@@ -48,7 +48,16 @@ def test_scipy_solver_preserves_float32_call_compatibility():
     pytest.importorskip("scipy")
     net = make_decay_network(np.float32)
     result = net.run(
-        SimulationConfig(t_end=0.3, dt=0.1, solver="solve_ivp")
+        SimulationConfig(
+            t_end=0.3,
+            dt=0.1,
+            solver="solve_ivp",
+            return_trajectory=True,
+        )
     )
     assert result.state.shape == net.state_shape
+    assert result.state.dtype == np.dtype(np.float32)
+    assert net.state.dtype == np.dtype(np.float32)
+    assert result.trajectory_state is not None
+    assert result.trajectory_state.dtype == np.dtype(np.float32)
     assert result.convergence is not None
