@@ -263,7 +263,9 @@ class CellularNetwork:
         device: str | None = None,
     ) -> "CellularNetwork":
         """Restore a network from a serialized dictionary."""
-        resolved_device = device if device is not None else data.get("device", "cpu")
+        resolved_device = (
+            device if device is not None else data.get("device", "cpu")
+        )
         network = cls(
             input=data["input"],
             initial_state=data.get("initial_state"),
