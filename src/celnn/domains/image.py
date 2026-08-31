@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from ..core.exceptions import OptionalDependencyError
 from ..utils.doc import optional_dependency_message
 
+if TYPE_CHECKING:
+    from PIL.Image import Image as PILImage
 
-def _image_module():
+
+def _image_module() -> Any:
     try:
         from PIL import Image
     except ImportError as exc:  # pragma: no cover - optional dependency branch
@@ -45,7 +48,7 @@ def image_to_array(image: Any) -> np.ndarray:
     return normalize_image(np.asarray(image))
 
 
-def array_to_image(array: Any):
+def array_to_image(array: Any) -> PILImage:
     """Convert a normalized array to a grayscale PIL image."""
     Image = _image_module()
     grayscale = denormalize_image(array)

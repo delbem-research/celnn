@@ -19,13 +19,13 @@ class CuPyBackend(StencilBackend):
 
     The public `celnn` API still returns NumPy arrays. This backend moves
     stencil aggregation to the GPU and converts the result back to NumPy at
-    the backend boundary.
+    the backend boundary without changing the caller-owned numerical dtype.
     """
 
     name = "cupy"
 
     def __init__(self) -> None:
-        self.cp = self._import_cupy()
+        self.cp: Any = self._import_cupy()
 
     @classmethod
     def is_available(cls) -> bool:
@@ -43,10 +43,10 @@ class CuPyBackend(StencilBackend):
         return True
 
     def _prepare(self, value: Any) -> Any:
-        return self.cp.asarray(value, dtype=self.cp.float64)
+        return self.cp.asarray(value)
 
     def _zeros_like(self, array: Any) -> Any:
-        return self.cp.zeros_like(array, dtype=self.cp.float64)
+        return self.cp.zeros_like(array)
 
     def _pad(
         self,
@@ -65,11 +65,7 @@ class CuPyBackend(StencilBackend):
     def _fast_path(
         self, array: Any, kernel: Any, *, mode: str, cval: float
     ) -> Any | None:
-        """Use cupyx convolution for ND, where the Python loop is costly.
-
-        1D and 2D keep the shared stencil, which the stubbed-runtime tests
-        compare against the NumPy backend mode by mode.
-        """
+        """Use cupyx convolution for ND, where the Python loop is costly."""
         if array.ndim <= 2:
             return None
         try:
@@ -84,8 +80,8 @@ class CuPyBackend(StencilBackend):
         )
 
     def _finalize(self, result: Any) -> np.ndarray:
-        """Bring the result back to the host; the public API returns NumPy."""
-        return np.asarray(self.cp.asnumpy(result), dtype=float)
+        """Bring the result back to the host without changing its dtype."""
+        return np.asarray(self.cp.asnumpy(result))
 
     @classmethod
     def _import_cupy(cls) -> Any:
@@ -128,47 +124,3 @@ class CuPyBackend(StencilBackend):
             ):
                 os.environ["CUDA_PATH"] = str(nvrtc_candidate)
                 return
-
-    def _aggregate_1d(self, array, kernel, *, mode: str, cval: float):
-        radius = kernel.shape[0] // 2
-        padded = self.cp.pad(
-            array,
-            (radius, radius),
-            **self._pad_kwargs(mode, cval),
-        )
-        result = self.cp.zeros_like(array, dtype=self.cp.float64)
-        for index, weight in enumerate(kernel):
-            result += weight * padded[index: index + array.shape[0]]
-        return result
-
-    def _aggregate_2d(self, array, kernel, *, mode: str, cval: float):
-        pad_y = kernel.shape[0] // 2
-        pad_x = kernel.shape[1] // 2
-        padded = self.cp.pad(
-            array,
-            ((pad_y, pad_y), (pad_x, pad_x)),
-            **self._pad_kwargs(mode, cval),
-        )
-        result = self.cp.zeros_like(array, dtype=self.cp.float64)
-        height, width = array.shape
-        for row in range(kernel.shape[0]):
-            row_slice = slice(row, row + height)
-            for col in range(kernel.shape[1]):
-                col_slice = slice(col, col + width)
-                result += kernel[row, col] * padded[row_slice, col_slice]
-        return result
-
-    def _aggregate_nd(self, array, kernel, *, mode: str, cval: float):
-        try:
-            from cupyx.scipy.ndimage import convolve
-        except ImportError as exc:  # pragma: no cover - optional branch
-            raise BackendError(
-                "CuPy ND aggregation requires cupyx.scipy.ndimage. "
-                "Use 1D/2D templates or device='cpu'."
-            ) from exc
-        return convolve(
-            array,
-            self.cp.flip(kernel),
-            mode=self._scipy_mode(mode),
-            cval=float(cval),
-        )

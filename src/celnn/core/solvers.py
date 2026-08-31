@@ -47,7 +47,7 @@ def _maybe_print_progress(
 
 def _convergence_info(
     final_state: np.ndarray, previous_state: np.ndarray
-) -> dict[str, float]:
+) -> dict[str, float | bool]:
     delta = np.max(np.abs(final_state - previous_state))
     return {
         "max_abs_state_delta": float(delta),
@@ -67,11 +67,10 @@ def _store_result(
     final_output = network.output(state)
     metadata = _base_metadata(network, state=state, warnings=warnings)
     if trajectory_state is not None and trajectory_output is not None:
-        time_array = np.asarray(times, dtype=float)
         return SimulationResult(
             state=state.copy(),
             output=final_output.copy(),
-            time=time_array,
+            time=np.asarray(times, dtype=float),
             trajectory_state=np.stack(trajectory_state, axis=0),
             trajectory_output=np.stack(trajectory_output, axis=0),
             metadata=metadata,
@@ -251,7 +250,9 @@ def _solve_ivp(
     if not sol.success:
         raise SolverError(f"SciPy solve_ivp failed: {sol.message}")
 
-    trajectory = sol.y.T.reshape((-1,) + initial_state.shape)
+    trajectory = sol.y.T.reshape((-1,) + initial_state.shape).astype(
+        network.dtype, copy=False
+    )
     final_state = trajectory[-1].copy()
     previous_state = (
         trajectory[-2].copy() if len(trajectory) > 1 else initial_state.copy()

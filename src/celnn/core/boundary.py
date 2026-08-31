@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from .exceptions import CelNNError
 
 VALID_BOUNDARY_MODES = ("constant", "wrap", "reflect", "nearest", "mirror")
@@ -32,7 +34,7 @@ def numpy_pad_mode(mode: str) -> str:
     return _NUMPY_PAD_MODES[normalized]
 
 
-def pad_kwargs(mode: str, boundary_value: float) -> dict[str, object]:
+def pad_kwargs(mode: str, boundary_value: float) -> dict[str, Any]:
     """Return keyword arguments for ``numpy.pad``."""
     normalized = normalize_boundary_mode(mode)
     if normalized == "constant":

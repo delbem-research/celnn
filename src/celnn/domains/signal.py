@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
 
 from ..core.exceptions import OptionalDependencyError
 from ..utils.doc import optional_dependency_message
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 
 def normalize_signal(
@@ -46,7 +52,7 @@ def generate_noisy_sine(
     ) + rng.normal(scale=noise_scale, size=samples)
 
 
-def _plt():
+def _plt() -> Any:
     try:
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover - optional dependency branch
@@ -58,7 +64,7 @@ def _plt():
 
 def plot_signal(
     signal: np.ndarray, *, title: str = "Signal", path: str | None = None
-):
+) -> tuple[Figure, Axes]:
     """Plot a one-dimensional signal."""
     plt = _plt()
     fig, ax = plt.subplots()
@@ -78,7 +84,7 @@ def plot_signal_comparison(
     *,
     title: str = "Signal comparison",
     path: str | None = None,
-):
+) -> tuple[Figure, Axes]:
     """Plot a reference and a processed signal."""
     plt = _plt()
     fig, ax = plt.subplots()

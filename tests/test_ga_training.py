@@ -5,6 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+pytest.importorskip("deap", reason="DEAP is optional")
+
 from celnn import SimulationConfig
 from celnn.core.exceptions import CelNNError, ShapeMismatchError
 from celnn.core.templates import Template

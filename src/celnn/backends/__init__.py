@@ -1,11 +1,14 @@
 """Backend utilities."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .cupy_backend import CuPyBackend
 from .numpy_backend import NUMPY_BACKEND, NumPyBackend, get_default_backend
 from .protocol import ArrayBackend
 from .stencil import StencilBackend
+
+if TYPE_CHECKING:
+    from .torch_backend import TorchBackend
 
 
 def __getattr__(name: str) -> Any:

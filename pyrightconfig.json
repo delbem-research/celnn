@@ -1,0 +1,17 @@
+{
+  "include": ["src/celnn"],
+  "exclude": ["**/__pycache__", ".venv", "dist"],
+  "typeCheckingMode": "strict",
+  "pythonVersion": "3.10",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "reportPrivateUsage": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownLambdaType": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnnecessaryComparison": "none",
+  "reportUnnecessaryIsInstance": "none",
+  "reportUnusedVariable": "none"
+}
