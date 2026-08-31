@@ -260,9 +260,10 @@ class CellularNetwork:
         cls,
         data: dict[str, Any],
         *,
-        device: str = "cpu",
+        device: str | None = None,
     ) -> "CellularNetwork":
         """Restore a network from a serialized dictionary."""
+        resolved_device = device if device is not None else data.get("device", "cpu")
         network = cls(
             input=data["input"],
             initial_state=data.get("initial_state"),
@@ -273,7 +274,7 @@ class CellularNetwork:
             boundary=data.get("boundary", "constant"),
             boundary_value=float(data.get("boundary_value", 0.0)),
             dtype=data.get("dtype"),
-            device=device,
+            device=resolved_device,
             metadata=deepcopy(data.get("metadata", {})),
         )
         current_state = data.get("current_state")
