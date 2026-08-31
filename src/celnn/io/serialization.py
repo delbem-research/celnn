@@ -83,7 +83,7 @@ def save_network_json(network: CellularNetwork, path: str | Path) -> Path:
 def load_network_json(
     path: str | Path,
     *,
-    device: str = "cpu",
+    device: str | None = None,
 ) -> CellularNetwork:
-    """Load a network from JSON on the requested device."""
+    """Load a network from JSON, optionally overriding its execution device."""
     return CellularNetwork.from_dict(load_json(path), device=device)
