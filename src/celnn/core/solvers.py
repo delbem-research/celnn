@@ -250,7 +250,9 @@ def _solve_ivp(
     if not sol.success:
         raise SolverError(f"SciPy solve_ivp failed: {sol.message}")
 
-    trajectory = sol.y.T.reshape((-1,) + initial_state.shape)
+    trajectory = sol.y.T.reshape((-1,) + initial_state.shape).astype(
+        network.dtype, copy=False
+    )
     final_state = trajectory[-1].copy()
     previous_state = (
         trajectory[-2].copy() if len(trajectory) > 1 else initial_state.copy()
