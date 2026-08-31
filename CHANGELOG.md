@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.0 - 2026-08-31
+
 ### Changed
 
 - Consolidated numerical contracts for the next minor release while preserving
