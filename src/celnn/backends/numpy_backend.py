@@ -21,10 +21,10 @@ class NumPyBackend(StencilBackend):
     name = "numpy"
 
     def _prepare(self, value: Any) -> np.ndarray:
-        return np.asarray(value, dtype=float)
+        return np.asarray(value)
 
     def _zeros_like(self, array: np.ndarray) -> np.ndarray:
-        return np.zeros_like(array, dtype=float)
+        return np.zeros_like(array)
 
     def _pad(
         self,
@@ -56,7 +56,7 @@ class NumPyBackend(StencilBackend):
             scipy_convolve(
                 array, flipped, mode=scipy_mode(mode), cval=float(cval)
             ),
-            dtype=float,
+            dtype=array.dtype,
         )
 
 

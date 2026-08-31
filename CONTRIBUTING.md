@@ -2,27 +2,47 @@
 
 ## Development setup
 
+CELNN keeps the existing Conda development environment for compatibility while
+`pyproject.toml` remains the package manifest for installable dependencies and
+optional capabilities.
+
+Create the maintained development environment and install the package with the
+Torch extra required by the package-wide Pyright analysis:
+
 ```bash
 conda env create -f environment.yml
 conda activate pycelnn
-pip install -e . --no-deps
+python -m pip install -e ".[torch]"
 ```
 
 To update an existing environment:
 
 ```bash
 conda env update -f environment.yml --prune
+python -m pip install -e ".[torch]"
 ```
 
 ## Development workflow
 
 1. Create a feature branch.
-2. Make focused changes with tests.
-3. Run `python -m compileall src`.
-4. Run `pytest`.
-5. Run `ruff check .`.
-6. Run `mypy src/celnn/core/network.py src/celnn/core/simulation.py src/celnn/core/solvers.py`.
-7. Open a pull request with a concise description of the change and its motivation.
+2. Make focused changes with matching tests.
+3. Run `ruff check .`.
+4. Run `pyright`.
+5. Run `pytest`.
+6. Open a pull request with a concise description of the change and its motivation.
+
+## Full non-CUDA integration suite
+
+The default workflow does not require every optional execution capability. To
+reproduce the CI lane that exercises all supported non-CUDA integrations:
+
+```bash
+python -m pip install -e ".[torch,scipy,ga,image,viz]"
+pytest
+```
+
+Real CuPy/CUDA behavior requires a CUDA-capable environment and is not implied
+by the non-CUDA integration suite.
 
 ## Style guidelines
 
@@ -33,10 +53,7 @@ conda env update -f environment.yml --prune
 
 ## Testing
 
-The test suite is written with `pytest`. GPU runtime tests also skip
-cleanly when CuPy/CUDA are unavailable.
-
-```bash
-conda activate pycelnn
-pytest
-```
+The test suite is written with `pytest`. Optional integration tests skip cleanly
+when their dependency is unavailable; CI exercises the base package, the
+supported non-CUDA integrations, declared dependency floors, and built
+artifacts separately.

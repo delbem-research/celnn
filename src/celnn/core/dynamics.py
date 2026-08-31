@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
-import numpy as np
+from collections.abc import Callable
+from typing import Any
 
 from ..backends import ArrayBackend
 
 
 def local_feedback(
-    state: np.ndarray,
-    feedback: np.ndarray,
-    activation,
+    state: Any,
+    feedback: Any,
+    activation: Callable[[Any], Any],
     backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
-) -> np.ndarray:
+) -> Any:
     """Compute the feedback contribution ``A * y(x)``."""
     output = activation(state)
     return backend.aggregate_local(
@@ -23,12 +24,12 @@ def local_feedback(
 
 
 def local_control(
-    input_array: np.ndarray,
-    control: np.ndarray,
+    input_array: Any,
+    control: Any,
     backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
-) -> np.ndarray:
+) -> Any:
     """Compute the control contribution ``B * u``."""
     return backend.aggregate_local(
         input_array, control, mode=boundary, cval=boundary_value
@@ -36,16 +37,16 @@ def local_control(
 
 
 def local_drive(
-    state: np.ndarray,
-    input_array: np.ndarray,
-    feedback: np.ndarray,
-    control: np.ndarray,
-    bias: np.ndarray,
-    activation,
+    state: Any,
+    input_array: Any,
+    feedback: Any,
+    control: Any,
+    bias: Any,
+    activation: Callable[[Any], Any],
     backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
-) -> np.ndarray:
+) -> Any:
     """Compute the non-decay part of the dynamics."""
     feedback_term = local_feedback(
         state, feedback, activation, backend, boundary, boundary_value
@@ -57,16 +58,16 @@ def local_drive(
 
 
 def derivative(
-    state: np.ndarray,
-    input_array: np.ndarray,
-    feedback: np.ndarray,
-    control: np.ndarray,
-    bias: np.ndarray,
-    activation,
+    state: Any,
+    input_array: Any,
+    feedback: Any,
+    control: Any,
+    bias: Any,
+    activation: Callable[[Any], Any],
     backend: ArrayBackend,
     boundary: str,
     boundary_value: float,
-) -> np.ndarray:
+) -> Any:
     """Compute ``dx/dt = -x + A*y(x) + B*u + z``."""
     drive = local_drive(
         state=state,

@@ -1,6 +1,9 @@
 """Top-level package for celnn."""
 
-from typing import Any
+from __future__ import annotations
+
+from importlib.metadata import PackageNotFoundError, version
+from typing import TYPE_CHECKING, Any
 
 from .activations import (
     identity,
@@ -17,9 +20,29 @@ from .core.simulation import SimulationConfig
 from .core.templates import Template
 from .templates.registry import TemplateRegistry
 
+if TYPE_CHECKING:
+    from .associative import (
+        AssociativeMemoryState,
+        DeltaHebbianMemory,
+        DeltaHebbianRule,
+    )
+    from .associative_field import (
+        AssociativeFieldState,
+        NormalizedDeltaHebbianField,
+    )
+    from .differentiable import DifferentiableCellularNetwork
+    from .plasticity import (
+        HebbianRule,
+        OjaRule,
+        Plasticity,
+        PlasticityRule,
+        PlasticityState,
+        PlasticLinear,
+    )
+
 
 def __getattr__(name: str) -> Any:
-    """Expose the differentiable network lazily so torch stays optional."""
+    """Expose optional APIs lazily so their dependencies stay optional."""
     if name == "DifferentiableCellularNetwork":
         from .differentiable import DifferentiableCellularNetwork
 
@@ -48,6 +71,7 @@ def __getattr__(name: str) -> Any:
         return getattr(module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
+
 __all__ = [
     "CellularNetwork",
     "AssociativeFieldState",
@@ -75,4 +99,7 @@ __all__ = [
     "tanh_activation",
 ]
 
-__version__ = "0.3.2"
+try:
+    __version__ = version("celnn")
+except PackageNotFoundError:  # pragma: no cover - source tree without install
+    __version__ = "0+unknown"

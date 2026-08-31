@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -13,11 +15,28 @@ from ..templates.registry import TemplateRegistry
 
 
 def save_json(data: dict[str, Any], path: str | Path) -> Path:
-    """Save a JSON-serializable dictionary to disk."""
+    """Atomically save a JSON-serializable dictionary to disk."""
     target = Path(path)
-    target.write_text(
-        json.dumps(data, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    serialized = json.dumps(data, indent=2, sort_keys=True)
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            handle.write(serialized)
+            handle.flush()
+            os.fsync(handle.fileno())
+            temp_path = Path(handle.name)
+        os.replace(temp_path, target)
+    except Exception:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+        raise
     return target
 
 
@@ -61,6 +80,10 @@ def save_network_json(network: CellularNetwork, path: str | Path) -> Path:
     return save_json(network.to_dict(), path)
 
 
-def load_network_json(path: str | Path) -> CellularNetwork:
-    """Load a network from JSON."""
-    return CellularNetwork.from_dict(load_json(path))
+def load_network_json(
+    path: str | Path,
+    *,
+    device: str | None = None,
+) -> CellularNetwork:
+    """Load a network from JSON, optionally overriding its execution device."""
+    return CellularNetwork.from_dict(load_json(path), device=device)

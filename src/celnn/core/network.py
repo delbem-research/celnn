@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 
-from ..backends import get_backend
+from ..backends import ArrayBackend, get_backend
 from .activations import activation_name, resolve_activation
 from .boundary import normalize_boundary_mode
 from .dynamics import derivative as compute_derivative
@@ -17,6 +17,7 @@ from .exceptions import CelNNError
 from .result import SimulationResult
 from .simulation import SimulationConfig
 from .solvers import solve
+from .steppers import euler_step
 from .templates import Template
 from .topology import RegularGridTopology
 from .validation import (
@@ -29,6 +30,21 @@ from .validation import (
 class CellularNetwork:
     """Continuous-time Cellular Neural Network over a regular grid."""
 
+    dtype: np.dtype[Any]
+    input: np.ndarray
+    state_shape: tuple[int, ...]
+    topology: RegularGridTopology
+    boundary: str
+    boundary_value: float
+    metadata: dict[str, Any]
+    device: str
+    backend: ArrayBackend
+    feedback: np.ndarray
+    control: np.ndarray
+    bias: np.ndarray
+    activation: str | Callable[[Any], Any]
+    state: np.ndarray
+
     def __init__(
         self,
         input: Any,
@@ -36,7 +52,7 @@ class CellularNetwork:
         feedback: Any | None = None,
         control: Any | None = None,
         bias: Any = 0.0,
-        activation: str | Any = "piecewise_linear",
+        activation: str | Callable[[Any], Any] = "piecewise_linear",
         boundary: str = "constant",
         boundary_value: float = 0.0,
         dtype: Any | None = None,
@@ -57,7 +73,7 @@ class CellularNetwork:
         self.dtype = np.dtype(dtype or float)
         self.metadata = deepcopy(metadata) if metadata is not None else {}
         self.device = device.lower().strip()
-        self.backend = get_backend(device)
+        self.backend = get_backend(self.device)
 
         self.feedback = self._resolve_template_array(
             value=feedback,
@@ -105,7 +121,7 @@ class CellularNetwork:
         input: Any,
         *,
         initial_state: Any | None = None,
-        activation: str | Any = "piecewise_linear",
+        activation: str | Callable[[Any], Any] = "piecewise_linear",
         boundary: str = "constant",
         boundary_value: float = 0.0,
         dtype: Any | None = None,
@@ -186,7 +202,9 @@ class CellularNetwork:
         """Advance one explicit Euler step and return the new state."""
         if dt <= 0:
             raise CelNNError(f"dt must be positive, got {dt}.")
-        self.state = self.state + float(dt) * self.derivative(self.state)
+        self.state = euler_step(
+            self.state, float(dt), self.derivative(self.state)
+        )
         return self.state.copy()
 
     def run(
@@ -215,7 +233,7 @@ class CellularNetwork:
         self.state = initial_array.copy()
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize the network configuration and current state."""
+        """Serialize the semantic network configuration and current state."""
         activation_key = activation_name(self.activation)
         if activation_key is None:
             raise CelNNError(
@@ -234,14 +252,20 @@ class CellularNetwork:
             "boundary": self.boundary,
             "boundary_value": self.boundary_value,
             "dtype": self.dtype.name,
-            "device": self.device,
-            "backend": self.backend.name,
             "metadata": deepcopy(self.metadata),
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CellularNetwork":
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        *,
+        device: str | None = None,
+    ) -> "CellularNetwork":
         """Restore a network from a serialized dictionary."""
+        resolved_device = (
+            device if device is not None else data.get("device", "cpu")
+        )
         network = cls(
             input=data["input"],
             initial_state=data.get("initial_state"),
@@ -252,7 +276,7 @@ class CellularNetwork:
             boundary=data.get("boundary", "constant"),
             boundary_value=float(data.get("boundary_value", 0.0)),
             dtype=data.get("dtype"),
-            device=data.get("device", "cpu"),
+            device=resolved_device,
             metadata=deepcopy(data.get("metadata", {})),
         )
         current_state = data.get("current_state")

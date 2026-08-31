@@ -8,34 +8,42 @@ Core install:
 pip install celnn
 ```
 
-Optional extras:
+Optional capabilities are explicit:
 
 ```bash
-pip install celnn[scipy]
-pip install celnn[image]
-pip install celnn[viz]
-pip install celnn[ga]
-pip install celnn[all]
+pip install "celnn[scipy]"
+pip install "celnn[gpu]"
+pip install "celnn[torch]"
+pip install "celnn[image]"
+pip install "celnn[viz]"
+pip install "celnn[ga]"
 ```
 
-The ``ga`` extra pulls in
-[DEAP](https://deap.readthedocs.io/en/master/), which is required to run
-the genetic-algorithm-based template trainer in
-:mod:`celnn.training`.
+The existing compatibility bundle also remains available:
 
-## Package structure
-
-```text
-celnn/
-  core/            numerical engine and core abstractions
-  backends/        backend protocol and NumPy implementation
-  domains/         image, signal, and grid utilities
-  templates/       built-in templates and registry
-  training/        genetic-algorithm-based template training (DEAP)
-  io/              JSON serialization helpers
-  visualization/   optional plotting helpers
-  utils/           small shared utilities
+```bash
+pip install "celnn[all]"
 ```
+
+The base package does not require optional capabilities. The `all` extra keeps
+the established SciPy/GPU/image/viz/GA bundle; PyTorch remains an explicit
+`torch` capability.
+
+## Core execution model
+
+`CellularNetwork` is the classical NumPy/CuPy API. Its dtype is part of the
+numerical representation. The default is `float64`, and explicitly selected
+dtype behavior is compatibility-sensitive rather than being narrowed by this
+consolidation. Native `float32` and `float64` execution paths are verified
+explicitly.
+
+Backend choice changes execution, not the mathematical model. `device="cpu"`
+uses NumPy, `device="gpu"`/`"cuda"` requires CuPy, and `device="auto"` may select
+CuPy when available.
+
+`DifferentiableCellularNetwork` is the optional PyTorch API. Its dtype/device
+follow normal `torch.nn.Module` parameter/buffer ownership and PyTorch movement
+semantics.
 
 ## Quick start
 
@@ -47,7 +55,9 @@ u = np.random.uniform(-1.0, 1.0, size=(32, 32))
 
 net = CellularNetwork(
     input=u,
-    feedback=np.array([[0.05, 0.2, 0.05], [0.2, 1.0, 0.2], [0.05, 0.2, 0.05]]),
+    feedback=np.array(
+        [[0.05, 0.2, 0.05], [0.2, 1.0, 0.2], [0.05, 0.2, 0.05]]
+    ),
     control=np.zeros((3, 3)),
     bias=-0.1,
     boundary="wrap",
@@ -55,99 +65,10 @@ net = CellularNetwork(
 
 result = net.run(SimulationConfig(t_end=5.0, dt=0.05))
 print(result.output.shape)
+print(result.convergence)
 ```
 
-## Core classes
-
-### `CellularNetwork`
-
-Main user-facing object. It stores:
-
-- input field,
-- current internal state,
-- feedback and control templates,
-- bias,
-- activation,
-- boundary behavior,
-- topology metadata,
-- runtime metadata.
-
-Constructor:
-
-```python
-CellularNetwork(
-    input,
-    initial_state=None,
-    feedback=None,
-    control=None,
-    bias=0.0,
-    activation="piecewise_linear",
-    boundary="constant",
-    boundary_value=0.0,
-    dtype=None,
-    device="cpu",
-    metadata=None,
-)
-```
-
-Default behavior:
-
-- `initial_state` defaults to zeros.
-- `feedback` defaults to a centered identity-like stencil.
-- `control` defaults to a zero stencil with the same shape as `feedback`.
-- `bias` can be scalar or broadcastable array.
-- `device` defaults to `"cpu"`.
-
-Key methods:
-
-- `run(config=None) -> SimulationResult`
-- `derivative(state) -> np.ndarray`
-- `output(state=None) -> np.ndarray`
-- `step(dt) -> np.ndarray`
-- `reset(initial_state=None) -> None`
-- `from_template(...)`
-- `to_dict()`
-- `from_dict()`
-
-### `Template`
-
-Reusable template object bundling:
-
-- `name`
-- `feedback`
-- `control`
-- `bias`
-- optional `initial_state`
-- `description`
-- `tags`
-- `metadata`
-
-Key methods:
-
-- `validate()`
-- `to_dict()`
-- `from_dict()`
-- `copy()`
-- `with_bias()`
-- `as_arrays()`
-
-### `TemplateRegistry`
-
-Registry for named templates.
-
-Methods:
-
-- `register(template, overwrite=False)`
-- `get(name)`
-- `list()`
-- `names()`
-- `remove(name)`
-- `to_dict()`
-- `from_dict()`
-
-### `SimulationConfig`
-
-Controls time integration:
+## `SimulationConfig`
 
 ```python
 SimulationConfig(
@@ -162,51 +83,74 @@ SimulationConfig(
 )
 ```
 
-Supported solver names:
+Supported solvers:
 
-- `euler`
-- `semi_implicit_euler`
-- `solve_ivp` if SciPy is installed
+- `euler`;
+- `semi_implicit_euler`;
+- `solve_ivp` when SciPy is installed.
 
-### `SimulationResult`
+This consolidation does not add a new dtype-only restriction to `solve_ivp`.
+`stability_checks` remains part of the established configuration interface.
+Its scientific redesign, if needed, belongs in a dedicated change.
 
-Holds:
+## `SimulationResult`
 
-- final `state`
-- final `output`
-- stored `time`
-- optional `trajectory_state`
-- optional `trajectory_output`
-- `metadata` (solver/backend/device and optional warnings)
-- optional `convergence`
+A result contains:
 
-## Activation functions
+- final `state`;
+- final `output`;
+- stored `time`;
+- optional `trajectory_state`;
+- optional `trajectory_output`;
+- execution metadata such as solver/backend/device;
+- the established `convergence` diagnostic mapping.
 
-Built-ins:
+`convergence` is preserved for compatibility. It should not be treated as a
+formal mathematical convergence certificate unless and until a dedicated
+scientific contract defines such semantics.
 
-- `piecewise_linear`
-- `saturated_linear`
-- `identity`
-- `tanh_activation`
-- `sigmoid_activation`
-- `sign_activation`
-- `relu_activation`
+## Templates and registries
 
-You may also pass a callable directly. Named built-ins serialize automatically. Arbitrary callables do not.
+`Template` bundles feedback/control kernels, bias, optional initial state,
+description, tags, and metadata. `TemplateRegistry` owns reusable named
+templates.
 
-## Solvers
+Both expose `to_dict()`/`from_dict()` for object-level representation. File
+compatibility belongs to `celnn.io.serialization`.
 
-### Explicit Euler
+## Persistence
 
-Simple, transparent, and good for experiments. It is the default.
+Public JSON helpers:
 
-### Semi-implicit Euler
+- `save_config_json` / `load_config_json`;
+- `save_template_json` / `load_template_json`;
+- `save_registry_json` / `load_registry_json`;
+- `save_network_json` / `load_network_json`.
 
-Treats the linear decay `-x` implicitly while keeping the nonlinear local drive explicit. This often behaves better than plain Euler for the same timestep.
+The public helpers preserve the established flat JSON representation. This
+consolidation does not introduce a schema envelope, migration framework, or
+stricter deserialization contract because external artifacts may exist outside
+the repository.
 
-### SciPy `solve_ivp`
+Network artifacts persist semantic state such as templates, state, activation,
+boundary, dtype, and metadata. New writes do not persist backend/device as
+durable model identity, while loaders continue accepting historical payloads
+that contain those operational fields. Loading defaults to CPU; request another
+device explicitly when needed.
 
-Available when SciPy is installed. Useful for comparison runs and higher-dimensional aggregation because the SciPy backend also supports ND stencils more naturally.
+Writes are atomic.
+
+## Optional APIs
+
+- `celnn.training` requires the `ga` extra (DEAP).
+- image helpers require the `image` extra (Pillow).
+- visualization helpers require the `viz` extra (Matplotlib).
+- `solve_ivp` requires the `scipy` extra.
+- differentiable, plasticity, and associative-memory APIs require the `torch`
+  extra.
+- CuPy/CUDA execution requires the `gpu` extra.
+
+Plain `import celnn` must remain valid without any of these extras installed.
 
 ## Boundary modes
 
@@ -218,246 +162,20 @@ Available when SciPy is installed. Useful for comparison runs and higher-dimensi
 
 Use `boundary_value` with `constant`.
 
-## Image domain utilities
+## Extending CELNN
 
-`celnn.domains.image` is optional and depends on Pillow.
+Keep new scientific behavior in its natural owner:
 
-Functions:
+- ODE/dynamics in `celnn.core.dynamics`;
+- time-integration formulas in `celnn.core.steppers`;
+- shared stencil/boundary semantics in the existing backend boundary owners;
+- domain-specific I/O outside the numerical core.
 
-- `load_grayscale`
-- `save_grayscale`
-- `normalize_image`
-- `denormalize_image`
-- `image_to_array`
-- `array_to_image`
+Do not introduce a new backend framework, plugin registry, or generic array
+abstraction merely to add one implementation.
 
-The core package never imports Pillow directly.
+## Development verification
 
-## Signal domain utilities
-
-`celnn.domains.signal` provides:
-
-- `normalize_signal`
-- `generate_sine_wave`
-- `generate_noisy_sine`
-- optional `plot_signal`
-- optional `plot_signal_comparison`
-
-## Grid domain utilities
-
-`celnn.domains.grid` provides:
-
-- `random_grid`
-- `impulse_grid`
-- `checkerboard_grid`
-- `coordinate_grid`
-
-## Serialization
-
-JSON helpers live in `celnn.io.serialization`.
-
-Available helpers:
-
-- `save_config_json`
-- `load_config_json`
-- `save_template_json`
-- `load_template_json`
-- `save_registry_json`
-- `load_registry_json`
-- `save_network_json`
-- `load_network_json`
-
-## Visualization
-
-`celnn.visualization.plots` provides optional Matplotlib wrappers:
-
-- `plot_signal`
-- `plot_grid`
-- `plot_trajectory`
-
-## Error handling
-
-Custom exceptions:
-
-- `CelNNError`
-- `ShapeMismatchError`
-- `TemplateValidationError`
-- `SolverError`
-- `BackendError`
-- `OptionalDependencyError`
-
-## Extending the library
-
-### Adding a new template
-
-Create a `Template` and register it:
-
-```python
-from celnn.templates import Template, TemplateRegistry
-
-template = Template(
-    name="my_template",
-    feedback=[[0.0, 0.2, 0.0], [0.2, 1.0, 0.2], [0.0, 0.2, 0.0]],
-    control=[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
-    bias=0.0,
-)
-
-registry = TemplateRegistry()
-registry.register(template)
-```
-
-### Adding a new activation function
-
-Pass a callable:
-
-```python
-import numpy as np
-
-def softsign(x: np.ndarray) -> np.ndarray:
-    return x / (1.0 + np.abs(x))
-```
-
-### Adding a new domain adapter
-
-Keep domain-specific I/O and preprocessing outside `celnn.core`. Domain adapters should convert to and from NumPy arrays without introducing hard dependencies into the numerical core.
-
-### Future backend design
-
-The backend protocol is intentionally small. Version 0.1 includes a
-NumPy backend and an optional CuPy/CUDA backend. A future JAX, PyTorch,
-or Numba backend would mainly need:
-
-- array conversion,
-- local stencil aggregation,
-- compatible activation handling.
-
-### GPU execution
-
-Install GPU support with:
-
-```bash
-pip install celnn[gpu]
-```
-
-Then select the device on `CellularNetwork`:
-
-```python
-net = CellularNetwork(
-    input=u,
-    feedback=A,
-    control=B,
-    boundary="reflect",
-    device="gpu",
-)
-```
-
-Device options:
-
-- `cpu`: use the NumPy backend. This is the default.
-- `gpu` or `cuda`: require the CuPy/CUDA backend and fail clearly if it
-  cannot run.
-- `auto`: use CuPy/CUDA when available, otherwise fall back to NumPy.
-
-The public result arrays are returned as NumPy arrays. The CuPy backend
-accelerates local stencil aggregation on the GPU.
-
-## Complete examples
-
-See [docs/examples.md](examples.md) and the `examples/` directory for:
-
-- image edge detection,
-- 1D signal filtering,
-- custom template simulation,
-- reaction-diffusion-like pattern experiments,
-- custom activations,
-- template registry usage,
-- genetic-algorithm template training (DEAP).
-
-For a step-by-step guide on creating new templates for new tasks, see
-[docs/template-creation-guide.md](template-creation-guide.md).
-
-## Training templates with a genetic algorithm
-
-`celnn.training` provides a small genetic-algorithm (GA) trainer,
-powered by [DEAP](https://deap.readthedocs.io/en/master/), that searches
-for the feedback, control, and bias coefficients of a CelNN template
-that best fit a dataset of (input, target) pairs.
-
-```bash
-pip install celnn[ga]
-```
-
-```python
-import numpy as np
-from celnn import SimulationConfig
-from celnn.templates import Template
-from celnn.training import GAConfig, GATrainer, TrainingDataset
-
-template = Template(
-    name="identity_seed",
-    feedback=[0.0, 1.0, 0.0],
-    control=[0.0, 1.0, 0.0],
-    bias=0.0,
-)
-
-u1 = np.linspace(-1.0, 1.0, 16)
-u2 = np.sin(np.linspace(0.0, 2.0 * np.pi, 16))
-dataset = TrainingDataset.from_pairs([u1, u2], [u1.copy(), u2.copy()])
-
-trainer = GATrainer(
-    template=template,
-    dataset=dataset,
-    config=SimulationConfig(t_end=5.0, dt=0.1, solver="euler"),
-    ga_config=GAConfig(
-        pop_size=20,
-        n_generations=15,
-        bounds=(-1.0, 1.0),
-        bias_bounds=(-0.5, 0.5),
-        seed_template=template,
-    ),
-    activation="identity",
-    boundary="reflect",
-    seed=42,
-)
-
-result = trainer.run()
-print(result.best_fitness)
-print(result.fitness_history)
-print(result.best_template.feedback)
-```
-
-Key configuration knobs:
-
-- `pop_size` and `n_generations`: population size and number of
-  generations. Larger values improve the search at the cost of more
-  simulation runs.
-- `bounds` / `bias_bounds`: inclusive `(low, high)` ranges for the
-  feedback/control coefficients and for the bias term.
-- `mut_sigma`: a single float (shared by all genes) or a 2-tuple
-  `(sigma_feedback, sigma_control_bias)` for per-segment mutation.
-- `regularization`: multiplies an L2 penalty on the candidate
-  coefficients to favor smaller, often more stable, templates.
-- `seed_template`: optional initial template whose coefficients seed
-  the first individual of the population.
-
-A runnable demonstration is available in
-[`examples/genetic_algorithm_training.py`](../examples/genetic_algorithm_training.py).
-
-## FAQ
-
-### Does this package implement Convolutional Neural Networks?
-
-No. `celnn` implements CelNN systems, not Convolutional Neural
-Networks.
-
-### Does v0.1 support arbitrary graph neighborhoods?
-
-Not yet. The public API is designed with extension points, but v0.1 focuses on regular arrays.
-
-### Does v0.1 support ND arrays?
-
-Yes at the API level. Robust 1D and 2D support is available with the NumPy fallback. ND aggregation is best used with SciPy installed.
-
-### Why keep image helpers outside the core?
-
-Because the mathematical core is generic and should not depend on optional image libraries.
+For the canonical development setup and local verification workflow, see
+[CONTRIBUTING.md](../CONTRIBUTING.md). The existing Conda environment remains
+supported, and Pyright is the maintained package-wide static type checker.

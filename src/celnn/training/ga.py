@@ -214,14 +214,14 @@ class GATrainer:
         self.template = template
         self.dataset = dataset
         self.config = config
-        self.ga_config = ga_config or GAConfig()
+        self.ga_config: GAConfig = ga_config or GAConfig()
         self.activation = activation
         self.boundary = boundary
-        self.boundary_value = float(boundary_value)
+        self.boundary_value: float = float(boundary_value)
         self.dtype = dtype
         self.device = device
         self.loss_fn = loss_fn
-        self.regularization = float(regularization)
+        self.regularization: float = float(regularization)
         self.seed = seed
 
         self._feedback_shape: tuple[int, ...] = tuple(feedback.shape)

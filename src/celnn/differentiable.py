@@ -14,11 +14,11 @@ import numpy as np
 
 try:
     import torch
-except ImportError as exc:  # pragma: no cover - environment branch
+except ImportError as _exc:  # pragma: no cover - environment branch
     raise ImportError(
         "DifferentiableCellularNetwork requires PyTorch. "
         "Install it with `pip install celnn[torch]`."
-    ) from exc
+    ) from _exc
 
 from .backends.torch_backend import TorchBackend
 from .core.activations import resolve_activation
@@ -36,6 +36,22 @@ class DifferentiableCellularNetwork(torch.nn.Module):
     including ``channels=1``, adds an explicit final channel axis and diagonal
     per-channel templates. Channels do not mix inside these dynamics.
     """
+
+    radius: int
+    channels: int | None
+    activation: str | Callable[[Any], Any]
+    boundary: str
+    boundary_value: float
+    dt: float
+    steps: int
+    method: str
+    causal: bool
+    shared_channels: bool
+    trainable: bool
+    backend: TorchBackend
+    feedback: torch.Tensor
+    control: torch.Tensor
+    bias: torch.Tensor
 
     def __init__(
         self,
@@ -210,9 +226,12 @@ class DifferentiableCellularNetwork(torch.nn.Module):
     def _expand_channel_template(
         self, value: torch.Tensor, span: int, name: str
     ) -> torch.Tensor:
+        channels = self.channels
+        if channels is None:
+            raise RuntimeError("channel template expansion requires channels.")
         if tuple(value.shape) == (span,):
-            return value.reshape(span, 1).expand(span, self.channels)
-        expected = (span, self.channels)
+            return value.reshape(span, 1).expand(span, channels)
+        expected = (span, channels)
         if tuple(value.shape) == expected:
             return value
         raise ValueError(f"{name} must have shape ({span},) or {expected}.")

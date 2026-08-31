@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "celnn"
-version = "0.3.2"
+version = "0.4.0"
 description = "Generic Cellular Neural Networks for scientific computing and reusable local dynamical systems."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -54,7 +54,7 @@ dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
   "ruff>=0.8",
-  "mypy>=1.11",
+  "pyright>=1.1",
 ]
 all = [
   "scipy>=1.10",
@@ -66,10 +66,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tomieiro/libPyCelNN"
-Repository = "https://github.com/tomieiro/libPyCelNN"
-Documentation = "https://github.com/tomieiro/libPyCelNN/tree/main/docs"
-Issues = "https://github.com/tomieiro/libPyCelNN/issues"
+Homepage = "https://github.com/delbem-research/celnn"
+Repository = "https://github.com/delbem-research/celnn"
+Documentation = "https://github.com/delbem-research/celnn/tree/main/docs"
+Issues = "https://github.com/delbem-research/celnn/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -77,6 +77,9 @@ include-package-data = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+celnn = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -88,13 +91,3 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B"]
-
-[tool.mypy]
-python_version = "3.12"
-warn_unused_configs = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-strict_optional = true
-check_untyped_defs = true
-disallow_incomplete_defs = true
-no_implicit_optional = true

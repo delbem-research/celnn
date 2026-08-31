@@ -10,54 +10,44 @@ In this project, **CelNN** refers to this cellular dynamical-system model, **not
 pip install celnn
 ```
 
-For optional SciPy, image, and plotting support:
+Install only the optional capabilities you need:
 
 ```bash
-pip install celnn[all]
-```
-
-For GPU execution through CuPy/CUDA:
-
-```bash
-pip install celnn[gpu]
-```
-
-For genetic-algorithm-based template training (powered by DEAP):
-
-```bash
-pip install celnn[ga]
-```
-
-For differentiable templates and backpropagation through CelNN evolution:
-
-```bash
+pip install "celnn[scipy]"
+pip install "celnn[image]"
+pip install "celnn[viz]"
+pip install "celnn[ga]"
 pip install "celnn[torch]"
+pip install "celnn[gpu]"
 ```
 
-The same optional API includes modular Hebbian/Oja fast-weight plasticity with
-explicit per-sequence state. See [the plasticity guide](docs/plasticity.md).
+The existing compatibility bundle also remains available:
+
+```bash
+pip install "celnn[all]"
+```
+
+The `all` extra preserves the pre-existing SciPy/GPU/image/viz/GA bundle;
+PyTorch remains an explicit `torch` capability.
+
+The `torch` API includes differentiable CelNN evolution and modular
+Hebbian/Oja fast-weight plasticity with explicit per-sequence state.
+See [the plasticity guide](docs/plasticity.md).
 
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 
-## Development and verification
+The classical network defaults to `float64`. Explicit dtype behavior remains
+compatibility-sensitive; native `float32` and `float64` execution paths are
+covered directly by the test suite. This consolidation does not impose a new
+`float64`-only restriction on the optional SciPy `solve_ivp` path.
 
-Create the canonical development environment:
+## Development
 
-```bash
-conda env create -f environment.yml
-conda activate pycelnn
-pip install -e . --no-deps
-```
-
-Run local checks:
-
-```bash
-python -m compileall src
-pytest
-ruff check .
-mypy src/celnn/core/network.py src/celnn/core/simulation.py src/celnn/core/solvers.py
-```
+For the canonical development setup and local verification workflow, see
+[CONTRIBUTING.md](CONTRIBUTING.md). The repository continues to provide its
+existing Conda development environment while Pyright is the maintained static
+type checker.
 
 ## Quick start
 
@@ -78,7 +68,12 @@ net = CellularNetwork(
 
 result = net.run(SimulationConfig(t_end=1.0, dt=0.01))
 print(result.output.shape)
+print(result.convergence)
 ```
+
+`SimulationConfig.stability_checks` and `SimulationResult.convergence` remain
+part of the established public interface. Scientific redesign of those
+diagnostics is intentionally separate from the current consolidation work.
 
 ## Documentation shortcuts
 
@@ -100,41 +95,34 @@ print(result.output.shape)
 * Optional image, signal, grid, serialization, and visualization helpers.
 * Optional genetic-algorithm-based template trainer (DEAP).
 * Optional `DifferentiableCellularNetwork` with learnable PyTorch templates.
+* Optional PyTorch plasticity and associative-memory APIs.
 * Demonstrative built-in templates for image processing, logic, diffusion, and pattern formation.
 * Tests, examples, and technical documentation aimed at research and experimentation.
 
-## Minimal example
+## Persistence
 
-```python
-import numpy as np
-from celnn import CellularNetwork, SimulationConfig
-from celnn.activations import tanh_activation
+The public JSON helpers in `celnn.io.serialization` preserve the established flat
+JSON representation and write files atomically. Loading remains compatible with
+previously accepted payloads rather than introducing a new schema envelope or
+stricter migration contract in this consolidation.
 
-signal = np.sin(np.linspace(0, 8 * np.pi, 512))
-
-net = CellularNetwork(
-    input=signal,
-    feedback=np.array([0.2, 1.0, 0.2]),
-    control=np.array([0.1, 0.8, 0.1]),
-    bias=0.0,
-    activation=tanh_activation,
-    boundary="reflect",
-)
-
-result = net.run(SimulationConfig(t_end=5.0, dt=0.05))
-print(result.output[:5])
-```
+Saved network artifacts preserve model meaning, including dtype, but new writes
+do not bind the model to the backend/device on which it happened to run. Loaders
+continue accepting historical payloads containing those operational fields and
+loading defaults to CPU unless another device is explicitly requested.
 
 ## Implementation status
 
-- Maturity: alpha (`0.1.x`), focused on regular-grid CelNN systems.
-- CI-verified baseline: CPU/NumPy dynamics, SciPy solver path, templates,
-  serialization, and image/signal utilities.
-- GPU coverage:
-  - deterministic CuPy backend behavior is tested in CI with a stubbed
-    CuPy runtime.
-  - real CUDA execution tests run when CuPy and a CUDA device are
-    available (tests skip otherwise).
+- Maturity: alpha; public contracts may intentionally evolve before 1.0, but
+  compatibility changes should be explicit rather than incidental.
+- CI verifies the base package on every advertised Python version, runs
+  package-wide Ruff/Pyright checks, exercises representative optional
+  integrations and dependency floors, and smoke-tests built wheel/sdist
+  artifacts.
+- The installed wheel ships `py.typed` and its public typing surface is verified
+  from the built artifact.
+- GPU semantic parity is covered with deterministic backend tests; real CUDA
+  claims require a CUDA-capable environment and are not inferred from stubs.
 
 ## License
 
