@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -74,7 +75,9 @@ def test_network_and_config_serialization_roundtrip(tmp_path):
     assert load_config_json(config_path) == config
 
 
-def test_legacy_execution_fields_are_not_rewritten(tmp_path):
+def test_legacy_execution_device_is_preserved_and_not_rewritten(
+    tmp_path, monkeypatch
+):
     signal = np.ones(5)
     net = CellularNetwork(
         input=signal,
@@ -90,10 +93,20 @@ def test_legacy_execution_fields_are_not_rewritten(tmp_path):
     path = tmp_path / "legacy-network.json"
     path.write_text(json.dumps(legacy), encoding="utf-8")
 
+    def fake_get_backend(device):
+        name = "cupy" if device == "gpu" else "numpy"
+        return SimpleNamespace(name=name)
+
+    monkeypatch.setattr("celnn.core.network.get_backend", fake_get_backend)
+
     restored = load_network_json(path)
     assert restored.state.shape == signal.shape
-    assert restored.device == "cpu"
-    assert restored.backend.name == "numpy"
+    assert restored.device == "gpu"
+    assert restored.backend.name == "cupy"
+
+    overridden = load_network_json(path, device="cpu")
+    assert overridden.device == "cpu"
+    assert overridden.backend.name == "numpy"
 
     save_network_json(restored, path)
     rewritten = json.loads(path.read_text())
