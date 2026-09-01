@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from celnn import CellularNetwork, SimulationConfig
-from celnn.core.exceptions import ShapeMismatchError
+from celnn.core.exceptions import CelNNError, ShapeMismatchError
 from celnn.core.steppers import euler_step
 from celnn.templates import Template
 
@@ -80,6 +80,17 @@ def test_step_uses_canonical_euler_semantics():
     expected = euler_step(before, 0.1, derivative)
     actual = net.step(0.1)
     assert np.allclose(actual, expected)
+
+
+@pytest.mark.parametrize("dt", [np.nan, np.inf, -np.inf])
+def test_step_rejects_non_finite_dt_without_mutating_state(dt):
+    net = CellularNetwork([1.0])
+    before = net.state.copy()
+
+    with pytest.raises(CelNNError, match="finite and positive"):
+        net.step(dt)
+
+    assert np.array_equal(net.state, before)
 
 
 def test_reset_restores_initial_state():
