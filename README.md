@@ -109,16 +109,18 @@ stricter migration contract in this consolidation.
 Saved network artifacts preserve model meaning, including dtype, but new writes
 do not bind the model to the backend/device on which it happened to run. Loaders
 continue accepting historical payloads containing those operational fields and
-loading defaults to CPU unless another device is explicitly requested.
+new artifacts therefore load on CPU unless another device is explicitly
+requested. A historical payload that contains a device continues to select it
+for compatibility; pass `device="cpu"` when loading untrusted legacy artifacts.
 
 ## Implementation status
 
-- Maturity: alpha; public contracts may intentionally evolve before 1.0, but
-  compatibility changes should be explicit rather than incidental.
+- Maturity: production/stable at version 1.0; compatibility changes remain
+  explicit rather than incidental.
 - CI verifies the base package on every advertised Python version, runs
   package-wide Ruff/Pyright checks, exercises representative optional
-  integrations and dependency floors, and smoke-tests built wheel/sdist
-  artifacts.
+  integrations and dependency floors, validates wheel/sdist metadata, and
+  smoke-tests the exact built wheel.
 - The installed wheel ships `py.typed` and its public typing surface is verified
   from the built artifact.
 - GPU semantic parity is covered with deterministic backend tests; real CUDA

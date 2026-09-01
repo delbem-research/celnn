@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Any
 
 import numpy as np
@@ -24,14 +25,25 @@ class SimulationConfig:
     progress: bool = False
 
     def __post_init__(self) -> None:
-        if self.dt <= 0:
-            raise SolverError(f"dt must be positive, got {self.dt}.")
+        if not isfinite(self.dt) or self.dt <= 0:
+            raise SolverError(
+                f"dt must be finite and positive, got {self.dt}."
+            )
+        if not isfinite(self.t_start) or not isfinite(self.t_end):
+            raise SolverError(
+                "t_start and t_end must be finite, "
+                f"got {self.t_start} -> {self.t_end}."
+            )
         if self.t_end < self.t_start:
             raise SolverError(
                 "t_end must be greater than or equal to t_start, "
                 f"got {self.t_start} -> {self.t_end}."
             )
-        if self.store_every <= 0:
+        if (
+            not isinstance(self.store_every, int)
+            or isinstance(self.store_every, bool)
+            or self.store_every <= 0
+        ):
             raise SolverError(
                 "store_every must be a positive integer, "
                 f"got {self.store_every}."

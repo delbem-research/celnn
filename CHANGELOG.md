@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Fixed
+
+- Reject non-finite simulation times and invalid trajectory strides before
+  execution, and reject non-finite direct-step sizes without mutating state.
+- Reject persisted current state whose shape disagrees with the network input.
+- Normalize floating-point images in `[0, 1]` across the full CelNN `[-1, 1]`
+  range.
+
+### Security
+
+- Pin third-party GitHub Actions to exact commits, including the trusted PyPI
+  publishing action.
+
 ## 1.0.0 - 2026-08-31
 
 ### Changed

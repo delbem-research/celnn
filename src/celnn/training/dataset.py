@@ -36,6 +36,15 @@ class TrainingSample:
                 "Training sample input and target must share the same shape. "
                 f"Got input={self.input.shape} and target={self.target.shape}."
             )
+        if (
+            self.initial_state is not None
+            and self.initial_state.shape != self.input.shape
+        ):
+            raise ShapeMismatchError(
+                "Training sample initial_state must match the input shape. "
+                f"Got input={self.input.shape} and "
+                f"initial_state={self.initial_state.shape}."
+            )
 
 
 @dataclass(slots=True)

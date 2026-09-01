@@ -135,8 +135,9 @@ the repository.
 Network artifacts persist semantic state such as templates, state, activation,
 boundary, dtype, and metadata. New writes do not persist backend/device as
 durable model identity, while loaders continue accepting historical payloads
-that contain those operational fields. Loading defaults to CPU; request another
-device explicitly when needed.
+that contain those operational fields. New artifacts default to CPU; historical
+artifacts continue selecting a stored device for compatibility. Pass
+`device="cpu"` explicitly when loading an untrusted legacy artifact.
 
 Writes are atomic.
 

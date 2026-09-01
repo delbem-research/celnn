@@ -2,8 +2,10 @@ import json
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from celnn import CellularNetwork, SimulationConfig
+from celnn.core.exceptions import ShapeMismatchError
 from celnn.io.serialization import (
     load_config_json,
     load_network_json,
@@ -143,3 +145,13 @@ def test_template_and_registry_ignore_unknown_fields():
         }
     )
     assert registry.names() == ["demo"]
+
+
+def test_network_loader_rejects_incompatible_current_state_shape(tmp_path):
+    payload = CellularNetwork(input=np.ones(3)).to_dict()
+    payload["current_state"] = [1.0]
+    path = tmp_path / "invalid-network.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ShapeMismatchError, match="shape mismatch"):
+        load_network_json(path)

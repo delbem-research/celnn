@@ -30,6 +30,15 @@ def test_training_sample_validates_shape():
         TrainingSample(input=u, target=target)
 
 
+def test_training_sample_validates_initial_state_shape():
+    with pytest.raises(ShapeMismatchError, match="initial_state"):
+        TrainingSample(
+            input=np.zeros(4),
+            target=np.zeros(4),
+            initial_state=np.zeros(3),
+        )
+
+
 def test_training_dataset_from_pairs():
     u1 = np.linspace(-1, 1, 8)
     u2 = np.linspace(0, 1, 8)

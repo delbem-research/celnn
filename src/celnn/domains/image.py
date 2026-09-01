@@ -29,10 +29,10 @@ def normalize_image(image: Any) -> np.ndarray:
     array = np.asarray(image, dtype=float)
     if array.size == 0:
         return array.astype(float)
-    if array.min() >= -1.0 and array.max() <= 1.0:
-        return array.astype(float, copy=False)
     if array.min() >= 0.0 and array.max() <= 1.0:
         return (2.0 * array) - 1.0
+    if array.min() >= -1.0 and array.max() <= 1.0:
+        return array.astype(float, copy=False)
     return (array / 127.5) - 1.0
 
 

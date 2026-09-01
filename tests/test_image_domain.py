@@ -27,3 +27,11 @@ def test_image_normalization_helpers():
     restored = denormalize_image(normalized)
     assert restored.dtype == np.uint8
     assert restored.shape == image.shape
+
+
+def test_unit_interval_image_uses_full_celnn_range():
+    image = np.array([0.0, 0.5, 1.0])
+
+    normalized = normalize_image(image)
+
+    assert np.array_equal(normalized, np.array([-1.0, 0.0, 1.0]))

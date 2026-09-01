@@ -1,6 +1,8 @@
 import numpy as np
+import pytest
 
 from celnn import CellularNetwork, SimulationConfig
+from celnn.core.exceptions import SolverError
 
 
 def test_simulation_trajectory_shapes():
@@ -36,3 +38,23 @@ def test_store_every_reduces_trajectory_length():
     )
     assert result.trajectory_state is not None
     assert result.trajectory_state.shape[0] == 3
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("dt", np.nan),
+        ("dt", np.inf),
+        ("t_start", np.nan),
+        ("t_end", np.inf),
+    ],
+)
+def test_simulation_rejects_non_finite_time_values(field, value):
+    with pytest.raises(SolverError, match="finite"):
+        SimulationConfig(**{field: value})
+
+
+@pytest.mark.parametrize("store_every", [0, -1, 1.5, True])
+def test_store_every_requires_a_positive_integer(store_every):
+    with pytest.raises(SolverError, match="positive integer"):
+        SimulationConfig(store_every=store_every)

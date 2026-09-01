@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from copy import deepcopy
+from math import isfinite
 from typing import Any
 
 import numpy as np
@@ -200,8 +201,8 @@ class CellularNetwork:
 
     def step(self, dt: float) -> np.ndarray:
         """Advance one explicit Euler step and return the new state."""
-        if dt <= 0:
-            raise CelNNError(f"dt must be positive, got {dt}.")
+        if not isfinite(dt) or dt <= 0:
+            raise CelNNError(f"dt must be finite and positive, got {dt}.")
         self.state = euler_step(
             self.state, float(dt), self.derivative(self.state)
         )
@@ -281,5 +282,9 @@ class CellularNetwork:
         )
         current_state = data.get("current_state")
         if current_state is not None:
-            network.state = np.asarray(current_state, dtype=network.dtype)
+            restored_state = coerce_ndarray(
+                current_state, dtype=network.dtype, name="current_state"
+            )
+            validate_initial_state(restored_state, network.state_shape)
+            network.state = restored_state
         return network
