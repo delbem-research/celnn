@@ -30,7 +30,8 @@ def main() -> None:
         if unexpected:
             details.append(f"unexpected: {', '.join(unexpected)}")
         if duplicates:
-            details.append(f"not documented exactly once: {', '.join(duplicates)}")
+            duplicate_names = ", ".join(duplicates)
+            details.append(f"not documented exactly once: {duplicate_names}")
         raise SystemExit("\n".join(details))
 
 
