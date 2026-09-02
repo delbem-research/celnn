@@ -147,7 +147,7 @@ class GATrainer:
     Parameters
     ----------
     template
-        Reference :class:`Template` whose shape (feedback/control
+        Reference :class:`celnn.Template` whose shape (feedback/control
         dimensions, dtype) defines the search space. The numeric values
         of the reference are used only when ``config.seed_template`` is
         left unset.
@@ -155,14 +155,14 @@ class GATrainer:
         Training dataset providing the (input, target) pairs used to
         compute the fitness.
     config
-        :class:`SimulationConfig` used to run the network during
+        :class:`celnn.SimulationConfig` used to run the network during
         evaluation. Use a short, coarse configuration to keep the
         genetic search fast.
     ga_config
         Optional :class:`GAConfig` with the algorithm hyperparameters.
     activation
         Activation function name or callable forwarded to
-        :class:`CellularNetwork`.
+        :class:`celnn.CellularNetwork`.
     boundary
         Boundary mode for the network (e.g. ``"reflect"``,
         ``"constant"``).
@@ -182,7 +182,7 @@ class GATrainer:
         default factory is built from the trainer configuration.
     seed
         Optional integer seed forwarded to DEAP's random sources and to
-        :class:`numpy.random.default_rng`. Setting the seed makes the
+        :func:`numpy.random.default_rng`. Setting the seed makes the
         training deterministic.
     """
 
