@@ -78,6 +78,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
           python -m pip install ./docs
+      - name: Verify top-level API reference coverage
+        run: python docs/check_reference.py
       - name: Build strict executable documentation
         run: |
           python -m sphinx -W --keep-going -b html \

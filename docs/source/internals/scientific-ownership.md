@@ -11,8 +11,7 @@ documentation interprets those owners; it must not fork their semantics.
 | Stencil semantics | `src/celnn/backends/stencil.py` | backend differential tests |
 | Public top-level surface | `src/celnn/__init__.py::__all__` | API/import tests + generated reference |
 
-The durable maintainer contract is in
-[`AGENTS.md`](https://github.com/delbem-research/celnn/blob/main/AGENTS.md).
+The durable maintainer contract is `AGENTS.md` in the same repository revision.
 It requires scientific changes to follow definition → representation → invariant
 → oracle → evidence.
 
@@ -27,10 +26,9 @@ small Euler increment does not imply a small vector-field residual. It does not
 turn today's `approx_converged` implementation into the mathematical definition
 of equilibrium.
 
-## Source links
+## Version provenance
 
-- [core/dynamics.py](https://github.com/delbem-research/celnn/blob/main/src/celnn/core/dynamics.py)
-- [core/steppers.py](https://github.com/delbem-research/celnn/blob/main/src/celnn/core/steppers.py)
-- [core/solvers.py](https://github.com/delbem-research/celnn/blob/main/src/celnn/core/solvers.py)
-- [backends/stencil.py](https://github.com/delbem-research/celnn/blob/main/src/celnn/backends/stencil.py)
-- [tests/](https://github.com/delbem-research/celnn/tree/main/tests)
+The production-owner paths above are identifiers in the same Git revision used
+to build this documentation. Inspect those version-local paths when reasoning
+about implementation details; do not substitute the current `main` branch for a
+versioned documentation build.

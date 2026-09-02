@@ -14,11 +14,14 @@ Use Python 3.12 from the repository root:
 ```bash
 python -m pip install -e .
 python -m pip install ./docs
+python docs/check_reference.py
 python -m sphinx -W --keep-going -b html docs/source docs/_build/html
 ```
 
-The source lives in `docs/source/`; generated output and notebook cache stay
-under `docs/_build/` and are not committed.
+The reference check enforces that every top-level `celnn.__all__` export is
+represented exactly once in the generated-reference source. The documentation
+source lives in `docs/source/`; generated output and notebook cache stay under
+`docs/_build/` and are not committed.
 
 ## Real Torch validation
 
