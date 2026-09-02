@@ -66,9 +66,9 @@ execution errors to build failures.
 
 ## Current CELNN diagnostic
 
-The current public result can be inspected separately. This observation is
-versioned library behavior; it is deliberately not the oracle for the
-mathematical claim above.
+The current public {py:class}`celnn.SimulationResult` can be inspected
+separately. This observation is versioned library behavior; it is deliberately
+not the oracle for the mathematical claim above.
 
 ```{code-cell} ipython3
 from celnn import SimulationConfig
