@@ -55,7 +55,8 @@ def _module_errors(
     if not (missing or unexpected or duplicates):
         return []
 
-    details = [f"{module_name} reference does not match {module_name}.__all__."]
+    mismatch = f"{module_name} reference does not match {module_name}.__all__."
+    details = [mismatch]
     if missing:
         details.append(f"  missing: {', '.join(missing)}")
     if unexpected:
