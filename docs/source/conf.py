@@ -26,6 +26,8 @@ intersphinx_mapping = {
 }
 
 autodoc_member_order = "bysource"
+autodoc_typehints = "description"
+autodoc_typehints_description_target = "documented"
 _real_torch = os.environ.get("CELNN_DOCS_REAL_TORCH") == "1"
 autodoc_mock_imports = [] if _real_torch else ["torch"]
 
