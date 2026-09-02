@@ -65,6 +65,44 @@ jobs:
       - name: Run full non-CUDA suite
         run: pytest
 
+  docs-base:
+    name: Docs / base
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install base package and isolated docs tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install ./docs
+      - name: Build strict executable documentation
+        run: |
+          python -m sphinx -W --keep-going -b html \
+            docs/source docs/_build/html
+
+  docs-torch:
+    name: Docs / real Torch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Torch package and isolated docs tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[torch]"
+          python -m pip install ./docs
+      - name: Build docs with the real Torch surface
+        env:
+          CELNN_DOCS_REAL_TORCH: "1"
+        run: |
+          python -m sphinx -W --keep-going -b html \
+            docs/source docs/_build/html-torch
+
   minimum-versions:
     runs-on: ubuntu-latest
     steps:
@@ -100,6 +138,41 @@ jobs:
           python -m pip install build twine
           python -m build
           python -m twine check --strict dist/*
+      - name: Verify docs are absent from release artifacts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          wheel = next(Path("dist").glob("*.whl"))
+          with zipfile.ZipFile(wheel) as archive:
+              wheel_names = archive.namelist()
+              metadata_name = next(
+                  name
+                  for name in wheel_names
+                  if name.endswith(".dist-info/METADATA")
+              )
+              metadata = archive.read(metadata_name).decode("utf-8")
+
+          sdist = next(Path("dist").glob("*.tar.gz"))
+          with tarfile.open(sdist, "r:gz") as archive:
+              sdist_names = archive.getnames()
+
+          def contains_docs(names: list[str]) -> bool:
+              return any(
+                  "/docs/" in f"/{name}" or name.endswith("/docs")
+                  for name in names
+              )
+
+          assert not contains_docs(wheel_names)
+          assert not contains_docs(sdist_names)
+
+          metadata_lower = metadata.lower()
+          assert "provides-extra: docs" not in metadata_lower
+          for dependency in ("sphinx", "myst-nb", "furo"):
+              assert dependency not in metadata_lower
+          PY
       - name: Install and verify exact wheel
         run: |
           python -m venv .venv-wheel
