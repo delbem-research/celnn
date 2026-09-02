@@ -57,7 +57,7 @@ implementation detail:
 
 ```{code-cell} ipython3
 assert state_increment < 1e-6
-assert residual > 0.9
+assert residual < 1e-3
 ```
 
 Reversing the second assertion to `assert residual < 1e-3` must make notebook
