@@ -45,7 +45,7 @@ def _module_errors(
     documented: list[str],
 ) -> list[str]:
     counts = Counter(documented)
-    exported = set(module.__all__)
+    exported = set(getattr(module, "__all__", ()))
     documented_set = set(documented)
 
     missing = sorted(exported - documented_set)
