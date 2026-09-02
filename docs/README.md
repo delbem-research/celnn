@@ -26,14 +26,14 @@ Run from the repository root:
 ```bash
 python -m pip install -e .
 python -m pip install -r docs/requirements.txt
-python docs/check_reference.py
 python -m sphinx -W --keep-going -b html docs/source docs/_build/html
+python docs/check_reference.py docs/_build/html/objects.inv
 ```
 
-`check_reference.py` verifies every symbol intentionally exported through
-`celnn.__all__`, `celnn.backends.__all__`, and `celnn.training.__all__` exactly
-once across the reference sources. The checker scans the reference tree rather
-than depending on a fixed page layout.
+`check_reference.py` verifies the generated Sphinx inventory rather than the
+source markup. Every symbol intentionally exported through `celnn.__all__`,
+`celnn.backends.__all__`, and `celnn.training.__all__` must exist exactly once
+as a Python-domain object in the rendered reference.
 
 The documentation source lives in `docs/source/`; generated output and notebook
 cache stay under `docs/_build/` and are not committed.
@@ -49,6 +49,7 @@ python -m pip install -r docs/requirements.txt
 CELNN_DOCS_REAL_TORCH=1 \
   python -m sphinx -W --keep-going -b html \
   docs/source docs/_build/html-torch
+python docs/check_reference.py docs/_build/html-torch/objects.inv
 ```
 
 Mocked imports are reference-rendering aids, never evidence that optional
