@@ -4,34 +4,27 @@ Backends choose execution strategy, not alternate mathematics. CuPy and Torch
 remain optional capabilities; the base documentation build does not treat a
 mocked optional import as runtime evidence.
 
-```{py:currentmodule} celnn.backends
-```
+```{eval-rst}
+.. py:currentmodule:: celnn.backends
 
-```{autoclass} celnn.backends.ArrayBackend
-:members:
-```
+.. autoclass:: celnn.backends.ArrayBackend
+   :members:
 
-```{autoclass} celnn.backends.StencilBackend
-:members:
-```
+.. autoclass:: celnn.backends.StencilBackend
+   :members:
 
-```{autoclass} celnn.backends.NumPyBackend
-:members:
-```
+.. autoclass:: celnn.backends.NumPyBackend
+   :members:
 
-```{autodata} celnn.backends.NUMPY_BACKEND
-```
+.. autodata:: celnn.backends.NUMPY_BACKEND
 
-```{autofunction} celnn.backends.get_default_backend
-```
+.. autofunction:: celnn.backends.get_default_backend
 
-```{autoclass} celnn.backends.CuPyBackend
-:members:
-```
+.. autoclass:: celnn.backends.CuPyBackend
+   :members:
 
-```{autoclass} celnn.backends.TorchBackend
-:members:
-```
+.. autoclass:: celnn.backends.TorchBackend
+   :members:
 
-```{autofunction} celnn.backends.get_backend
+.. autofunction:: celnn.backends.get_backend
 ```
