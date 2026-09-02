@@ -18,6 +18,7 @@ environment.
 :members:
 ```
 
+(api-simulation-result)=
 ```{autoclass} celnn.SimulationResult
 :members:
 ```
