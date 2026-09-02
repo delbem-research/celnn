@@ -4,6 +4,9 @@ Backends choose execution strategy, not alternate mathematics. CuPy and Torch
 remain optional capabilities; the base documentation build does not treat a
 mocked optional import as runtime evidence.
 
+```{py:currentmodule} celnn.backends
+```
+
 ```{autoclass} celnn.backends.ArrayBackend
 :members:
 ```
