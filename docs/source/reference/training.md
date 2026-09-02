@@ -3,6 +3,9 @@
 `celnn.training` deliberately exposes a small public surface. DEAP remains an
 optional runtime dependency and is imported only when GA execution is requested.
 
+```{py:currentmodule} celnn.training
+```
+
 ```{autoclass} celnn.training.TrainingSample
 :members:
 ```
