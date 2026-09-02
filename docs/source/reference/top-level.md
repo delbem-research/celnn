@@ -5,6 +5,9 @@ exactly once. Optional Torch-backed symbols are structurally renderable in the
 base documentation build; executable claims about them require a real Torch
 environment.
 
+```{py:currentmodule} celnn
+```
+
 ## Core simulation
 
 ```{autoclass} celnn.CellularNetwork
