@@ -22,7 +22,7 @@ def _load_inventory(path: Path) -> dict[str, dict[str, object]]:
         raise SystemExit(f"Sphinx inventory not found: {path}")
 
     inventory_module = importlib.import_module("sphinx.util.inventory")
-    inventory_file: Any = getattr(inventory_module, "InventoryFile")
+    inventory_file: Any = vars(inventory_module)["InventoryFile"]
     loaded: Any = inventory_file.loads(path.read_bytes(), uri="")
     return cast(dict[str, dict[str, object]], loaded.data)
 
@@ -63,7 +63,10 @@ def _module_errors(
     if not (missing or unexpected or duplicates):
         return []
 
-    mismatch = f"{module_name} rendered API does not match {module_name}.__all__."
+    mismatch = (
+        f"{module_name} rendered API does not match "
+        f"{module_name}.__all__."
+    )
     details = [mismatch]
     if missing:
         details.append(f"  missing: {', '.join(missing)}")
