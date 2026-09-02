@@ -11,12 +11,19 @@ version = ".".join(release.split(".")[:2])
 extensions = [
     "myst_nb",
     "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
 ]
 
 master_doc = "index"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 nitpicky = True
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "torch": ("https://docs.pytorch.org/docs/stable/", None),
+}
 
 autodoc_member_order = "bysource"
 _real_torch = os.environ.get("CELNN_DOCS_REAL_TORCH") == "1"
