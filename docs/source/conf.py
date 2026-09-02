@@ -14,7 +14,6 @@ extensions = [
     "sphinx.ext.intersphinx",
 ]
 
-source_suffix = {".md": "markdown"}
 master_doc = "index"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
@@ -31,13 +30,10 @@ nb_execution_raise_on_error = True
 nb_execution_timeout = 30
 nb_execution_excludepatterns = ["labs/gpu/**", "labs/expensive/**"]
 
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3/", None),
-    "numpy": ("https://numpy.org/doc/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
-    "torch": ("https://docs.pytorch.org/docs/stable/", None),
-}
-intersphinx_timeout = 10
+# Keep the intersphinx capability available without making the strict core docs
+# build depend on remote inventory availability. Add mappings only when a page
+# introduces a semantic upstream reference that needs one.
+intersphinx_mapping: dict[str, tuple[str, str | None]] = {}
 
 html_theme = "furo"
 html_title = f"CELNN {release} technical knowledge system"
