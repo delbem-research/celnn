@@ -1,3 +1,10 @@
+---
+file_format: mystnb
+kernelspec:
+  name: python3
+---
+
+(equilibrium-lab)=
 # Equilibrium lab: small step, large residual
 
 This lab tests a narrow scientific claim:
@@ -85,9 +92,26 @@ separately. This observation is versioned library behavior; it is deliberately
 not the oracle for the mathematical claim above.
 
 ```{code-cell} ipython3
-from celnn import SimulationConfig
+from celnn import CellularNetwork, SimulationConfig
 
-net.reset()
+net = CellularNetwork(
+    input=np.zeros(1),
+    initial_state=np.zeros(1),
+    feedback=np.zeros(3),
+    control=np.zeros(3),
+    bias=1.0,
+    activation="identity",
+)
 result = net.run(SimulationConfig(t_end=dt, dt=dt))
 result.convergence
 ```
+
+## How do we know?
+
+The primary evidence is analytical: at the first Euler state
+$x_1=10^{-7}$, the residual is $|-x_1+1|=0.9999999$. The executable assertions
+compare the experiment with that prediction.
+
+A future redesign of convergence/stability diagnostics should be proved in the
+production test suite with an explicit scientific contract. This lab should not
+freeze the current `approx_converged` heuristic as immutable behavior.
