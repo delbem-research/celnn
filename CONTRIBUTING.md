@@ -47,30 +47,9 @@ by the non-CUDA integration suite.
 ## Documentation module
 
 Documentation tooling is isolated under `docs/` and is not part of the CELNN
-runtime package or PyPI dependency metadata. Use Python 3.12 and install the
-library plus the standalone docs project:
-
-```bash
-python -m pip install -e .
-python -m pip install ./docs
-python -m sphinx -W --keep-going -b html docs/source docs/_build/html
-```
-
-To validate Torch-backed API documentation with the real optional dependency:
-
-```bash
-python -m pip install -e ".[torch]"
-python -m pip install ./docs
-CELNN_DOCS_REAL_TORCH=1 \
-  python -m sphinx -W --keep-going -b html \
-  docs/source docs/_build/html-torch
-```
-
-The base documentation build may mock Torch for structural API rendering only.
-Mocks are never evidence of Torch runtime behavior. Notebook execution errors
-are fatal unless an example explicitly marks the exception as expected.
-
-See [`docs/README.md`](docs/README.md) for the documentation-module contract.
+runtime package or PyPI dependency metadata. The canonical local build, API
+coverage check, real-Torch validation, and executable-example policy are owned
+by [`docs/README.md`](docs/README.md).
 
 ## Style guidelines
 
