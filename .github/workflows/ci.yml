@@ -141,51 +141,7 @@ jobs:
           python -m build
           python -m twine check --strict dist/*
       - name: Verify docs are absent from release artifacts
-        run: |
-          python - <<'PY'
-          from email.parser import Parser
-          from pathlib import Path
-          import re
-          import tarfile
-          import zipfile
-
-          wheel = next(Path("dist").glob("*.whl"))
-          with zipfile.ZipFile(wheel) as archive:
-              wheel_names = archive.namelist()
-              metadata_name = next(
-                  name
-                  for name in wheel_names
-                  if name.endswith(".dist-info/METADATA")
-              )
-              metadata = archive.read(metadata_name).decode("utf-8")
-
-          sdist = next(Path("dist").glob("*.tar.gz"))
-          with tarfile.open(sdist, "r:gz") as archive:
-              sdist_names = archive.getnames()
-
-          def contains_docs(names: list[str]) -> bool:
-              return any(
-                  "/docs/" in f"/{name}" or name.endswith("/docs")
-                  for name in names
-              )
-
-          assert not contains_docs(wheel_names)
-          assert not contains_docs(sdist_names)
-
-          metadata_fields = Parser().parsestr(metadata)
-          extras = {
-              value.lower()
-              for value in metadata_fields.get_all("Provides-Extra", [])
-          }
-          requirement_names = {
-              re.split(r"[ (<>=!~;@\[]", value.strip(), maxsplit=1)[0]
-              .lower()
-              .replace("_", "-")
-              for value in metadata_fields.get_all("Requires-Dist", [])
-          }
-          assert "docs" not in extras
-          assert requirement_names.isdisjoint({"sphinx", "myst-nb", "furo"})
-          PY
+        run: python docs/check_distribution_isolation.py
       - name: Install and verify exact wheel
         run: |
           python -m venv .venv-wheel
