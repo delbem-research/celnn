@@ -41,9 +41,9 @@ properties directly.
 
 ## Library behavior versus mathematical truth
 
-The `convergence` field on {py:class}`celnn.SimulationResult` is an established
-public interface in CELNN 1.0. Its current fields are useful diagnostics, but
-their present implementation is not the definition of equilibrium. See the
-generated API reference and the [scientific ownership
+The `convergence` field on {ref}`SimulationResult <api-simulation-result>` is an
+established public interface in CELNN 1.0. Its current fields are useful
+diagnostics, but their present implementation is not the definition of
+equilibrium. See the [scientific ownership
 map](../internals/scientific-ownership.md) for where the relevant implementation
 and evidence live.
