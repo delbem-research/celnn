@@ -141,7 +141,9 @@ jobs:
       - name: Verify docs are absent from release artifacts
         run: |
           python - <<'PY'
+          from email.parser import Parser
           from pathlib import Path
+          import re
           import tarfile
           import zipfile
 
@@ -168,10 +170,19 @@ jobs:
           assert not contains_docs(wheel_names)
           assert not contains_docs(sdist_names)
 
-          metadata_lower = metadata.lower()
-          assert "provides-extra: docs" not in metadata_lower
-          for dependency in ("sphinx", "myst-nb", "furo"):
-              assert dependency not in metadata_lower
+          metadata_fields = Parser().parsestr(metadata)
+          extras = {
+              value.lower()
+              for value in metadata_fields.get_all("Provides-Extra", [])
+          }
+          requirement_names = {
+              re.split(r"[ (<>=!~;@\[]", value.strip(), maxsplit=1)[0]
+              .lower()
+              .replace("_", "-")
+              for value in metadata_fields.get_all("Requires-Dist", [])
+          }
+          assert "docs" not in extras
+          assert requirement_names.isdisjoint({"sphinx", "myst-nb", "furo"})
           PY
       - name: Install and verify exact wheel
         run: |
