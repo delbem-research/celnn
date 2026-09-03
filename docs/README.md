@@ -45,6 +45,40 @@ CELNN target is rejected as implementation leakage.
 The documentation source lives in `docs/source/`; generated output and notebook
 cache stay under `docs/_build/` and are not committed.
 
+## Content architecture and ownership
+
+Documentation is organized by reader intent rather than by the package's source
+directory layout. Each material fact should have one primary documentation
+owner so that explanations, task guides, API contracts, and implementation
+notes do not drift into parallel copies of the same text.
+
+- **Start Here** establishes terminology, the mental model, and one minimal
+  complete CELNN system.
+- **Learn** owns the prerequisite-ordered conceptual progression from cells and
+  state to the canonical equation, spatial coupling, numerical evolution, and
+  equilibrium.
+- **Use CELNN** owns task-oriented procedures. It may link to theory but should
+  not re-teach it.
+- **Explanation** owns deeper derivations and scientific interpretation.
+- **API Reference** owns exact public signatures and object contracts generated
+  from deliberate exports and docstrings.
+- **Internals & Contributing** owns implementation responsibility, verification
+  strategy, and safe-extension guidance.
+- **Labs** own bounded executable claims and their falsifiers; they do not
+  replace production regression tests.
+- **Bibliography** owns canonical source metadata for literature actually cited
+  by the documentation.
+
+For material scientific claims, prefer primary-source support, an explicit
+derivation from stated definitions, or executable/library evidence. Do not
+infer historical attribution when the available sources do not establish it.
+Implementation behavior that is merely diagnostic or provisional must not be
+presented as a mathematical guarantee.
+
+The documentation engine is intentionally independent of this information
+architecture. Content may be reorganized without changing the Sphinx/MyST
+build, generated-reference strategy, CI model, or publication model.
+
 ## Real Torch validation and publication
 
 The base documentation build mocks Torch only to prove that the reference can
