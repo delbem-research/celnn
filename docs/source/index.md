@@ -94,10 +94,3 @@ internals/contribution-workflow
 
 bibliography
 ```
-
-```{toctree}
-:maxdepth: 1
-:caption: Migration backlog
-
-legacy
-```
