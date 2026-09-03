@@ -1,34 +1,50 @@
-# Scientific ownership and evidence
+# Scientific ownership and provenance
 
-CELNN keeps scientific meaning in a small number of explicit owners. The
-documentation interprets those owners; it must not fork their semantics.
+CELNN assigns each scientific or compatibility fact to a small number of explicit owners. Documentation explains those owners; it does not fork them into a second implementation.
 
-| Concern | Production owner | Evidence role |
-| --- | --- | --- |
-| CelNN differential equation | `src/celnn/core/dynamics.py` | analytical/differential tests |
-| Time-integration formulas | `src/celnn/core/steppers.py` | analytical/order tests |
-| Solver orchestration and current convergence metadata | `src/celnn/core/solvers.py` | solver tests and scientific falsifiers |
-| Stencil semantics | `src/celnn/backends/stencil.py` | backend differential tests |
-| Public top-level surface | `src/celnn/__init__.py::__all__` | API/import tests + generated reference |
+| Concern | Definition / contract owner | Production owner | Primary evidence |
+| --- | --- | --- | --- |
+| Canonical CELNN vector field | normalized equation documented by the project | `src/celnn/core/dynamics.py` | analytic cases + dynamics tests |
+| Fixed-step formulas | numerical method definition | `src/celnn/core/steppers.py` | exact formula/order/differential tests |
+| Solver trajectory/result semantics | public simulation contract | `src/celnn/core/solvers.py` | solver tests + independent comparisons |
+| Boundary semantics | public boundary names | `src/celnn/core/boundary.py` | boundary tests across implementations |
+| Stencil aggregation | relative-offset stencil contract | `src/celnn/backends/stencil.py` | structural + backend parity tests |
+| Reference network behavior | public API | `src/celnn/core/network.py` | network and serialization tests |
+| Differentiable CELNN | top-level public API | `src/celnn/differentiable.py` | Torch/reference differential tests |
+| Plastic fast weights | top-level public API | `src/celnn/plasticity.py` | rule/state tests |
+| Associative memory | top-level public API | `src/celnn/associative.py`, `associative_field.py` | algebraic/state tests |
+| GA template training | `celnn.training` public API | `src/celnn/training/` | deterministic seeded training tests |
+| Exported API inventory | each module's `__all__` | public package modules | import tests + rendered `objects.inv` oracle |
 
-The durable maintainer contract is `AGENTS.md` in the same repository revision.
-It requires scientific changes to follow definition → representation → invariant
-→ oracle → evidence.
+## Literature provenance is separate from software ownership
 
-## Change rule
+Primary literature supports historical definitions, mechanisms, or prior algorithms. It does not become the source of truth for a software behavior unless CELNN explicitly adopts that behavior as its contract.
 
-A documentation lab can verify that a published example still supports its
-claim. It is not the sole owner of production correctness. If a property is a
-required CELNN invariant, its regression protection belongs in `tests/` as well.
+For example:
 
-For example, the [equilibrium lab](../labs/equilibrium.md) demonstrates that a
-small Euler increment does not imply a small vector-field residual. It does not
-turn today's `approx_converged` implementation into the mathematical definition
-of equilibrium.
+- Chua and Yang support the historical cellular architecture and classical local-dynamics model;
+- Oja supports the lineage of a normalized Hebbian stabilizing term;
+- Kozek, Roska, and Chua support genetic template-learning precedent;
+- CELNN’s exact APIs, defaults, dtype rules, and state ownership come from the current package revision.
+
+This distinction prevents a citation from being used to justify code behavior the paper never specified.
+
+## The durable reasoning chain
+
+Scientific changes should follow:
+
+```text
+definition → representation → invariant → oracle → evidence
+```
+
+A change is under-specified if any link is missing. A test that merely reproduces the implementation is weak evidence because it can repeat the same mistake.
+
+## Documentation labs are evidence, not production owners
+
+The {doc}`../labs/equilibrium` lab protects the published claim that a small Euler increment can coexist with a large vector-field residual. It intentionally does not require the current `approx_converged` heuristic to remain unchanged.
+
+If a property is required of production CELNN behavior, regression ownership belongs in `tests/` as well as any explanatory lab.
 
 ## Version provenance
 
-The production-owner paths above are identifiers in the same Git revision used
-to build this documentation. Inspect those version-local paths when reasoning
-about implementation details; do not substitute the current `main` branch for a
-versioned documentation build.
+Implementation paths in these pages refer to the same repository revision used to build the site. When inspecting a versioned documentation build, use source from that revision rather than substituting a newer `main` branch.

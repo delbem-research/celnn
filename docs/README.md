@@ -35,12 +35,13 @@ python docs/check_reference.py docs/_build/html/objects.inv
 ```
 
 `check_reference.py` verifies the generated Sphinx inventory rather than the
-source markup. Every symbol intentionally exported through `celnn.__all__`,
-`celnn.backends.__all__`, and `celnn.training.__all__` must exist exactly once
-as a Python-domain object in the rendered reference. Canonical implementation
-names that Sphinx inventories as aliases of a public object are accepted only
-when they resolve to the same generated URI. A separately rendered private
-CELNN target is rejected as implementation leakage.
+source markup. Every symbol intentionally exported through `celnn.__all__` and
+the deliberate public surfaces of `celnn.backends`, `celnn.domains`, `celnn.io`,
+`celnn.templates`, and `celnn.training` must exist exactly once as a
+Python-domain object in the rendered reference. Canonical implementation names
+that Sphinx inventories as aliases of a public object are accepted only when
+they resolve to the same generated URI. A separately rendered private CELNN
+target is rejected as implementation leakage.
 
 The documentation source lives in `docs/source/`; generated output and notebook
 cache stay under `docs/_build/` and are not committed.

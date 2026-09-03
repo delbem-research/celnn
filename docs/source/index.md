@@ -78,7 +78,14 @@ reference/index
 :maxdepth: 2
 :caption: Internals & Contributing
 
+internals/architecture
 internals/scientific-ownership
+internals/dynamics
+internals/stencils-topology-boundaries
+internals/steppers-solvers
+internals/backends-parity
+internals/verification
+internals/contribution-workflow
 ```
 
 ```{toctree}
