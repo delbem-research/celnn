@@ -26,14 +26,14 @@ def _load_inventory(path: Path) -> dict[str, dict[str, object]]:
     return cast(dict[str, dict[str, object]], loaded.data)
 
 
-def _python_objects(
+def _python_entries(
     inventory: dict[str, dict[str, object]],
-) -> set[str]:
-    objects: set[str] = set()
-    for object_type, entries in inventory.items():
+) -> dict[str, object]:
+    entries: dict[str, object] = {}
+    for object_type, objects in inventory.items():
         if object_type.startswith("py:"):
-            objects.update(entries)
-    return objects
+            entries.update(objects)
+    return entries
 
 
 def _allowed_public_prefixes() -> tuple[str, ...]:
@@ -45,20 +45,37 @@ def _allowed_public_prefixes() -> tuple[str, ...]:
     return tuple(prefixes)
 
 
+def _is_public_name(qualified_name: str, allowed: tuple[str, ...]) -> bool:
+    return any(
+        qualified_name == prefix
+        or qualified_name.startswith(f"{prefix}.")
+        for prefix in allowed
+    )
+
+
+def _entry_uri(entry: object) -> str:
+    return str(getattr(entry, "uri", ""))
+
+
 def _unexpected_internal_objects(
     inventory: dict[str, dict[str, object]],
 ) -> list[str]:
     allowed = _allowed_public_prefixes()
-    unexpected: list[str] = []
+    entries = _python_entries(inventory)
+    public_uris = {
+        _entry_uri(entry)
+        for qualified_name, entry in entries.items()
+        if _is_public_name(qualified_name, allowed)
+    }
+    public_uris.discard("")
 
-    for qualified_name in sorted(_python_objects(inventory)):
+    unexpected: list[str] = []
+    for qualified_name, entry in sorted(entries.items()):
         if not qualified_name.startswith("celnn."):
             continue
-        if any(
-            qualified_name == prefix
-            or qualified_name.startswith(f"{prefix}.")
-            for prefix in allowed
-        ):
+        if _is_public_name(qualified_name, allowed):
+            continue
+        if _entry_uri(entry) in public_uris:
             continue
         unexpected.append(qualified_name)
 
