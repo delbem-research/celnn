@@ -74,7 +74,7 @@ def evaluate_template(
     ----------
     network_factory
         Callable that, given a sample, returns a configured
-        :class:`CellularNetwork` ready to be simulated.
+        :class:`celnn.CellularNetwork` ready to be simulated.
     config
         Simulation configuration used to advance the network.
     dataset

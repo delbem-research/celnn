@@ -252,6 +252,7 @@ class PlasticLinear(torch.nn.Module):
         *,
         update: bool = True,
     ) -> tuple[torch.Tensor, PlasticityState]:
+        """Return output and the next caller-owned plasticity state."""
         if input.ndim < 2:
             raise ValueError("input must have a batch and feature axis.")
         if input.shape[0] != state.memory.shape[0]:

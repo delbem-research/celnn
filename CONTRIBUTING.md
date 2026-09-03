@@ -44,6 +44,13 @@ pytest
 Real CuPy/CUDA behavior requires a CUDA-capable environment and is not implied
 by the non-CUDA integration suite.
 
+## Documentation module
+
+Documentation tooling is isolated under `docs/` and is not part of the CELNN
+runtime package or PyPI dependency metadata. The canonical local build, API
+coverage check, real-Torch validation, and executable-example policy are owned
+by [`docs/README.md`](docs/README.md).
+
 ## Style guidelines
 
 - Keep the core package independent from optional image and plotting dependencies.
