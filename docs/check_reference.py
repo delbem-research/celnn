@@ -14,6 +14,9 @@ import celnn
 PUBLIC_MODULES: dict[str, ModuleType] = {
     "celnn": celnn,
     "celnn.backends": importlib.import_module("celnn.backends"),
+    "celnn.domains": importlib.import_module("celnn.domains"),
+    "celnn.io": importlib.import_module("celnn.io"),
+    "celnn.templates": importlib.import_module("celnn.templates"),
     "celnn.training": importlib.import_module("celnn.training"),
 }
 DEFAULT_INVENTORY = Path(__file__).parent / "_build" / "html" / "objects.inv"

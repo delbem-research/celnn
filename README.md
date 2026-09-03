@@ -32,14 +32,14 @@ PyTorch remains an explicit `torch` capability.
 
 The `torch` API includes differentiable CelNN evolution and modular
 Hebbian/Oja fast-weight plasticity with explicit per-sequence state.
-See [the plasticity guide](docs/plasticity.md).
+See [the plasticity guide](docs/source/how-to/plasticity.md).
 
 Use `device="gpu"` to require GPU execution, `device="auto"` to try GPU
 and fall back to CPU, or `device="cpu"` for the default NumPy backend.
 
 The classical network defaults to `float64`. Explicit dtype behavior remains
 compatibility-sensitive; native `float32` and `float64` execution paths are
-covered directly by the test suite. This consolidation does not impose a new
+covered directly by the test suite. This does not impose a new
 `float64`-only restriction on the optional SciPy `solve_ivp` path.
 
 ## Development
@@ -72,39 +72,44 @@ print(result.convergence)
 ```
 
 `SimulationConfig.stability_checks` and `SimulationResult.convergence` remain
-part of the established public interface. Scientific redesign of those
-diagnostics is intentionally separate from the current consolidation work.
+part of the public interface. The convergence mapping is a numerical diagnostic,
+not a formal equilibrium certificate; see the documentation for the scientific
+interpretation.
 
-## Documentation shortcuts
+## Documentation
 
-* [CelNN: concept, theory, and study notes](docs/celnn.md)
-* [Library usage and API guide](docs/libcelnn.md)
-* [Examples](docs/examples.md)
-* [Mathematical model](docs/mathematical-model.md)
-* [Template design guide](docs/template-design.md)
-* [Template creation guide](docs/template-creation-guide.md)
-* [Migration from PyCNN](docs/migration-from-pycnn.md)
-* [Differentiable network and PyTorch usage](docs/differentiable-network.md)
+The technical knowledge system is organized by reader intent:
+
+* [Start here: what is a Cellular Neural Network?](docs/source/start/what-is-celnn.md)
+* [Learn the model from first principles](docs/source/learn/equation.md)
+* [Use CELNN: task-oriented guides](docs/source/how-to/index.md)
+* [Scientific explanations](docs/source/explanation/dynamical-systems.md)
+* [Generated public API reference](docs/source/reference/index.md)
+* [Internals and verification model](docs/source/internals/architecture.md)
+* [Scientific bibliography](docs/source/bibliography.md)
+
+The documentation is built with Sphinx/MyST and published through the repository's GitHub Pages workflow. Source links above remain useful when browsing a branch or pull request before publication.
 
 ## Features
 
-* Generic `CellularNetwork` API for 1D, 2D, and SciPy-backed ND simulations.
+* Generic `CellularNetwork` API for regular-array simulations.
 * Reusable `Template` and `TemplateRegistry` abstractions.
 * Built-in activation functions, boundary modes, and solver options.
+* Optional SciPy ODE integration.
 * Optional CuPy/CUDA backend for GPU local stencil aggregation.
 * Optional image, signal, grid, serialization, and visualization helpers.
 * Optional genetic-algorithm-based template trainer (DEAP).
 * Optional `DifferentiableCellularNetwork` with learnable PyTorch templates.
 * Optional PyTorch plasticity and associative-memory APIs.
 * Demonstrative built-in templates for image processing, logic, diffusion, and pattern formation.
-* Tests, examples, and technical documentation aimed at research and experimentation.
+* Tests, executable documentation, and generated API reference aimed at research and engineering use.
 
 ## Persistence
 
 The public JSON helpers in `celnn.io.serialization` preserve the established flat
 JSON representation and write files atomically. Loading remains compatible with
 previously accepted payloads rather than introducing a new schema envelope or
-stricter migration contract in this consolidation.
+stricter migration contract.
 
 Saved network artifacts preserve model meaning, including dtype, but new writes
 do not bind the model to the backend/device on which it happened to run. Loaders
@@ -113,8 +118,8 @@ loading defaults to CPU unless another device is explicitly requested.
 
 ## Implementation status
 
-- Maturity: alpha; public contracts may intentionally evolve before 1.0, but
-  compatibility changes should be explicit rather than incidental.
+- Release version and maturity are defined by the package metadata; compatibility
+  changes should be explicit rather than incidental.
 - CI verifies the base package on every advertised Python version, runs
   package-wide Ruff/Pyright checks, exercises representative optional
   integrations and dependency floors, and smoke-tests built wheel/sdist

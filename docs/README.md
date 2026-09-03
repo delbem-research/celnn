@@ -7,6 +7,26 @@ library never depends on this directory.
 The root Python package intentionally does not expose a `docs` extra. Deleting
 this directory must not change the runtime or PyPI metadata of `celnn`.
 
+## Read the documentation
+
+The published site is the primary reader experience, but the source remains
+usable directly on GitHub without building Sphinx. Start from one of these
+ordinary Markdown entry points:
+
+- [Start Here](source/start/what-is-celnn.md) — terminology and the smallest correct mental model;
+- [Learn](source/learn/equation.md) — prerequisite-ordered model and numerical foundations;
+- [Use CELNN](source/how-to/index.md) — task-oriented guides;
+- [Explanation](source/explanation/dynamical-systems.md) — deeper scientific interpretation;
+- [API Reference](source/reference/index.md) — generated public contracts;
+- [Internals & Contributing](source/internals/architecture.md) — ownership and verification;
+- [Bibliography](source/bibliography.md) — canonical source provenance.
+
+Narrative source is Markdown-first. Ordinary prose, headings, code fences, and
+ordinary links remain standard Markdown. MyST syntax is used only where it adds
+a concrete capability such as Sphinx cross-references, generated API objects, or
+executable notebook cells. Reading or making a prose-only edit does not require
+a local documentation build; the strict build is the verification step.
+
 ## Tooling
 
 Use Python 3.12. Documentation-only dependencies are owned by
@@ -35,15 +55,50 @@ python docs/check_reference.py docs/_build/html/objects.inv
 ```
 
 `check_reference.py` verifies the generated Sphinx inventory rather than the
-source markup. Every symbol intentionally exported through `celnn.__all__`,
-`celnn.backends.__all__`, and `celnn.training.__all__` must exist exactly once
-as a Python-domain object in the rendered reference. Canonical implementation
-names that Sphinx inventories as aliases of a public object are accepted only
-when they resolve to the same generated URI. A separately rendered private
-CELNN target is rejected as implementation leakage.
+source markup. Every symbol intentionally exported through `celnn.__all__` and
+the deliberate public surfaces of `celnn.backends`, `celnn.domains`, `celnn.io`,
+`celnn.templates`, and `celnn.training` must exist exactly once as a
+Python-domain object in the rendered reference. Canonical implementation names
+that Sphinx inventories as aliases of a public object are accepted only when
+they resolve to the same generated URI. A separately rendered private CELNN
+target is rejected as implementation leakage.
 
 The documentation source lives in `docs/source/`; generated output and notebook
 cache stay under `docs/_build/` and are not committed.
+
+## Content architecture and ownership
+
+Documentation is organized by reader intent rather than by the package's source
+directory layout. Each material fact should have one primary documentation
+owner so that explanations, task guides, API contracts, and implementation
+notes do not drift into parallel copies of the same text.
+
+- **Start Here** establishes terminology, the mental model, and one minimal
+  complete CELNN system.
+- **Learn** owns the prerequisite-ordered conceptual progression from cells and
+  state to the canonical equation, spatial coupling, numerical evolution, and
+  equilibrium.
+- **Use CELNN** owns task-oriented procedures. It may link to theory but should
+  not re-teach it.
+- **Explanation** owns deeper derivations and scientific interpretation.
+- **API Reference** owns exact public signatures and object contracts generated
+  from deliberate exports and docstrings.
+- **Internals & Contributing** owns implementation responsibility, verification
+  strategy, and safe-extension guidance.
+- **Labs** own bounded executable claims and their falsifiers; they do not
+  replace production regression tests.
+- **Bibliography** owns canonical source metadata for literature actually cited
+  by the documentation.
+
+For material scientific claims, prefer primary-source support, an explicit
+derivation from stated definitions, or executable/library evidence. Do not
+infer historical attribution when the available sources do not establish it.
+Implementation behavior that is merely diagnostic or provisional must not be
+presented as a mathematical guarantee.
+
+The documentation engine is intentionally independent of this information
+architecture. Content may be reorganized without changing the Sphinx/MyST
+build, generated-reference strategy, CI model, or publication model.
 
 ## Real Torch validation and publication
 
