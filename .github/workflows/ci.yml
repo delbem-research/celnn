@@ -68,7 +68,7 @@ jobs:
         run: pytest
       - name: Build docs with the real Torch surface
         env:
-          READTHEDOCS: "True"
+          CELNN_DOCS_REAL_TORCH: "1"
         run: |
           python -m sphinx -W --keep-going -b html \
             docs/source docs/_build/html-torch
