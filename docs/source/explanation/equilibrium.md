@@ -1,49 +1,59 @@
-(equilibrium-explanation)=
 # Equilibrium is a property of the vector field
 
-For a continuous dynamical system
+For a continuous-time system
 
 $$
-\dot{x} = f(x),
+\dot{x}=f(x),
 $$
 
 an equilibrium $x^*$ satisfies
 
 $$
-f(x^*) = 0.
+f(x^*)=0.
 $$
 
-This definition belongs to the continuous system. It does not depend on which
-time integrator is used to approximate a trajectory.
-
-## Why a small step is not enough
-
-Explicit Euler advances a state by
+For the CELNN model implemented by the library,
 
 $$
-x_{n+1} = x_n + \Delta t\,f(x_n).
+f(x)=-x+A*y(x)+B*u+z.
 $$
 
-Therefore
+Therefore a candidate equilibrium should be judged by the **vector-field residual**, not merely by how little one numerical step changed the state.
+
+## Why the last increment can be misleading
+
+Explicit Euler gives
 
 $$
-|x_{n+1} - x_n| = \Delta t\,|f(x_n)|.
+\Delta x_n=x_{n+1}-x_n=dt\,f(x_n).
 $$
 
-A sufficiently small $\Delta t$ can make the state increment arbitrarily small
-without making the vector-field residual $|f(x_n)|$ small. A criterion based
-only on the final state increment can therefore confuse fine discretization
-with physical stationarity.
+A threshold on $\|\Delta x_n\|$ is therefore a threshold on `dt * residual`. If `dt` is made arbitrarily small, the increment can be made arbitrarily small without moving the state closer to a root of the vector field.
 
-The [executable equilibrium lab](../labs/equilibrium.md) constructs this
-counterexample using the public CELNN API and checks the stable mathematical
-properties directly.
+This is the mechanism demonstrated in {doc}`../labs/equilibrium`.
 
-## Library behavior versus mathematical truth
+## Residual and increment answer different questions
 
-The `convergence` field on {py:class}`celnn.SimulationResult` is an established
-part of the public interface in CELNN 1.0. Its current fields are useful
-diagnostics, but their present implementation is not the definition of
-equilibrium. See the [scientific ownership
-map](../internals/scientific-ownership.md) for where the relevant implementation
-and evidence live.
+A small residual says the continuous model is nearly stationary at the evaluated state.
+
+A small increment says the chosen discrete algorithm moved little over its last step. That may happen because the residual is small, because the step is small, because the method is damping strongly, or for another solver-specific reason.
+
+Both quantities can be useful. They should not be given the same name.
+
+## Stability requires perturbation reasoning
+
+Even an exact equilibrium may be unstable. Stability concerns how trajectories behave after nearby perturbations; it cannot be established by evaluating only `f(x*)=0`.
+
+The classical Chua–Yang theory proves convergence/stability statements for the specific circuit family and assumptions analyzed there; see {ref}`chua-yang-1988-theory`. CELNN exposes a more general computational surface with multiple activations and numerical configurations, so those historical results are not promoted into universal software guarantees.
+
+## A defensible numerical equilibrium report
+
+For a numerical endpoint, report at least:
+
+- the norm used for the vector-field residual;
+- the residual value;
+- dtype and solver;
+- the integration/refinement procedure that produced the state;
+- any state-increment diagnostic separately.
+
+When an exact equilibrium is known, compare against it directly. When none is known, step refinement or an independent solver can add evidence, but the limitations should remain explicit.

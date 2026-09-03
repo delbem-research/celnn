@@ -46,16 +46,25 @@ how-to/migrate-pycnn
 
 ```{toctree}
 :maxdepth: 2
-:caption: Executable evidence
+:caption: Explanation
 
-labs/equilibrium
+explanation/dynamical-systems
+explanation/local-to-global
+explanation/spatial-operators
+explanation/boundary-operators
+explanation/numerical-semantics
+explanation/equilibrium
+explanation/diffusion-filtering-patterns
+explanation/template-learning
+explanation/plasticity-fast-weights
+explanation/associative-memory
 ```
 
 ```{toctree}
 :maxdepth: 2
-:caption: Explanation
+:caption: Executable evidence
 
-explanation/equilibrium
+labs/equilibrium
 ```
 
 ```{toctree}
