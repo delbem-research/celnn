@@ -23,13 +23,20 @@ layer = PlasticLinear(128, 128, plasticity)
 state = layer.new_state(batch_size=4)
 
 output, next_state = layer(input_batch, state, update=True)
+state = next_state.detach()
 ```
 
-The caller owns `state`. This makes sequence boundaries, reset policy, concurrent sessions, and graph truncation explicit.
+The caller owns `state`. This makes sequence boundaries, reset policy, concurrent sessions, and graph truncation explicit. At an intentional new-sequence boundary, reset explicitly:
+
+```python
+state = state.reset()
+```
 
 ## Choose a rule
 
 `HebbianRule` applies a decayed mean pre/post outer-product update. `OjaRule` adds a local output-energy term that counteracts unbounded Hebbian growth. The scientific lineage of Oja’s stabilizing rule is documented in {ref}`oja-1982`.
+
+Custom rules implement the public `PlasticityRule` callable contract; use the API Reference for the exact protocol rather than duplicating its signature here.
 
 ## Control gradient history
 

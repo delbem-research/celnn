@@ -29,6 +29,22 @@ loss.backward()
 
 Use ordinary PyTorch optimizers on `network.parameters()`.
 
+For example, if an experiment defines a target tensor with the same shape as the network output, the optimization mechanics are ordinary PyTorch:
+
+```python
+target = torch.zeros_like(u)  # replace with the experiment's target
+optimizer = torch.optim.Adam(network.parameters(), lr=1e-3)
+
+for _ in range(100):
+    optimizer.zero_grad()
+    prediction = network(u)
+    loss = torch.nn.functional.mse_loss(prediction, target)
+    loss.backward()
+    optimizer.step()
+```
+
+The zero target above is only a compact mechanics example, not a recommended scientific objective.
+
 ## Understand channel semantics
 
 With no `channels` argument, the class follows the scalar one-dimensional contract. With explicit channels, templates are diagonal over channels: each channel has its own local spatial coefficients but the canonical CELNN dynamics do not mix channels internally.

@@ -55,3 +55,23 @@ Do not tune coefficients in isolation. A useful workflow is:
 7. turn any required production property into a test or independent oracle.
 
 For the meaning of the coefficients, see {doc}`../learn/neighborhoods-templates`. For automated search, see {doc}`train-ga` or {doc}`differentiable`.
+
+## Probe the mechanism before tuning it
+
+The old documentation offered fixed coefficient and timestep recipes for broad task classes. Those numbers are not universal CELNN guarantees, so the safer workflow is to diagnose the operator with simple inputs before tuning a real dataset.
+
+Useful probes include:
+
+- a constant field, which exposes unintended bias or boundary effects;
+- a single impulse, which makes the local spatial response easy to inspect;
+- a step or edge, which reveals smoothing, sharpening, or directional response;
+- a checkerboard, which stresses high-spatial-frequency behavior;
+- a deterministic sine wave, which is useful for one-dimensional filtering experiments.
+
+Change one modeling choice at a time. If a coefficient change appears helpful only for one timestep or one boundary mode, treat that as evidence to investigate rather than as a transferable template rule.
+
+## Troubleshoot from the failing property
+
+If behavior is wrong only near the edge of the domain, inspect the boundary operator before changing interior coefficients. If the trajectory changes materially under timestep refinement, investigate discretization error before retuning the template. If output looks clipped, inspect both the internal state and the activation instead of assuming the stencil is wrong. If the last state increment is small, inspect the vector-field residual before calling the system converged.
+
+When a design becomes difficult to explain, reduce it to the smallest neighborhood and simplest activation that still reproduces the relevant behavior. Add complexity only after the simpler mechanism has been falsified.

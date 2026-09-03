@@ -35,6 +35,29 @@ save_grayscale(result.output, "output.png")
 
 The image helper normalizes ordinary grayscale image data to the package’s `[-1, 1]` convention and maps normalized output back to `uint8` for saving. Image I/O is not part of the CELNN differential equation.
 
+## End-to-end demonstrative image run
+
+The built-in `EDGE_DETECTION` template is explicitly demonstrative and PyCNN-inspired; using it here shows the data flow without claiming that its coefficients are optimal for a particular image or metric.
+
+```python
+from celnn import CellularNetwork, SimulationConfig
+from celnn.domains.image import load_grayscale, save_grayscale
+from celnn.templates import EDGE_DETECTION
+
+u = load_grayscale("input.png")
+
+network = CellularNetwork.from_template(
+    template=EDGE_DETECTION,
+    input=u,
+    activation="piecewise_linear",
+    boundary="reflect",
+)
+result = network.run(SimulationConfig(t_end=5.0, dt=0.05))
+save_grayscale(result.output, "edge.png")
+```
+
+For a real application, define the property that matters—such as localization, noise sensitivity, or agreement with a reference result—and validate that property instead of treating a demonstrative built-in as a benchmark.
+
 ## Persist templates and configurations
 
 ```python

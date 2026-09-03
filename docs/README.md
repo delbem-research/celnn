@@ -7,6 +7,26 @@ library never depends on this directory.
 The root Python package intentionally does not expose a `docs` extra. Deleting
 this directory must not change the runtime or PyPI metadata of `celnn`.
 
+## Read the documentation
+
+The published site is the primary reader experience, but the source remains
+usable directly on GitHub without building Sphinx. Start from one of these
+ordinary Markdown entry points:
+
+- [Start Here](source/start/what-is-celnn.md) — terminology and the smallest correct mental model;
+- [Learn](source/learn/equation.md) — prerequisite-ordered model and numerical foundations;
+- [Use CELNN](source/how-to/index.md) — task-oriented guides;
+- [Explanation](source/explanation/dynamical-systems.md) — deeper scientific interpretation;
+- [API Reference](source/reference/index.md) — generated public contracts;
+- [Internals & Contributing](source/internals/architecture.md) — ownership and verification;
+- [Bibliography](source/bibliography.md) — canonical source provenance.
+
+Narrative source is Markdown-first. Ordinary prose, headings, code fences, and
+ordinary links remain standard Markdown. MyST syntax is used only where it adds
+a concrete capability such as Sphinx cross-references, generated API objects, or
+executable notebook cells. Reading or making a prose-only edit does not require
+a local documentation build; the strict build is the verification step.
+
 ## Tooling
 
 Use Python 3.12. Documentation-only dependencies are owned by
