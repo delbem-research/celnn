@@ -11,6 +11,7 @@ version = ".".join(release.split(".")[:2])
 extensions = [
     "myst_nb",
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
 ]
 
@@ -18,6 +19,10 @@ master_doc = "index"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 nitpicky = True
+nitpick_ignore = [
+    ("py:class", "dict[str"),
+    ("py:class", "numpy._typing._dtype_like.DTypeLike"),
+]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -26,8 +31,7 @@ intersphinx_mapping = {
 }
 
 autodoc_member_order = "bysource"
-autodoc_typehints = "description"
-autodoc_typehints_description_target = "documented"
+autodoc_typehints = "signature"
 _real_torch = os.environ.get("CELNN_DOCS_REAL_TORCH") == "1"
 autodoc_mock_imports = [] if _real_torch else ["torch"]
 
