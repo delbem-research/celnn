@@ -62,19 +62,21 @@ CELNN_DOCS_REAL_TORCH=1 \
 python docs/check_reference.py docs/_build/html-torch/objects.inv
 ```
 
-`CELNN_DOCS_REAL_TORCH=1` is the host-neutral publication switch. The CI `full`
-lane and GitHub Pages use it so the public reference contains real Torch
-constructor signatures. Read the Docs remains compatible through its standard
-`READTHEDOCS=True` environment. The `distribution` lane keeps a separate mocked
-base build as the optional-dependency isolation oracle.
+`CELNN_DOCS_REAL_TORCH=1` is the host-neutral publication switch. In pull-request
+CI, the `Release` lane builds both documentation modes against the same exact
+wheel: first without Torch as the optional-dependency isolation oracle, then
+with CPU Torch for the complete public reference. The `Integrations` lane owns
+runtime integrations only and installs no documentation tooling. GitHub Pages
+uses the same real-Torch switch for publication. Read the Docs remains
+compatible through its standard `READTHEDOCS=True` environment.
 
 ### GitHub Pages
 
 `.github/workflows/docs-pages.yml` is the publication path for the latest docs.
 It runs only after a push to `main`, installs the CPU-only Torch wheel, performs
 the same strict Sphinx build and inventory check, and deploys the generated HTML
-through GitHub Pages. It does not add a pull-request check or a package
-runtime dependency.
+through GitHub Pages. It does not add a pull-request check or a package runtime
+dependency.
 
 The expected project-site URL is `https://delbem-research.github.io/celnn/` once
 GitHub Pages is enabled with GitHub Actions as its publishing source.
