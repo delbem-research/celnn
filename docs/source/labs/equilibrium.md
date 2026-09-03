@@ -28,24 +28,32 @@ $$
 x(t) = 1 - e^{-t}.
 $$
 
-The first experiment compares ten explicit Euler steps with that exact result.
+The first experiment compares ten explicit Euler steps from the public CELNN API
+with that exact result.
 
 ```{code-cell} ipython3
 import math
 
 import numpy as np
 
-from celnn.core.steppers import euler_step
+from celnn import CellularNetwork, SimulationConfig
 
 
-def rhs(state: np.ndarray) -> np.ndarray:
-    return -state + 1.0
+def make_network() -> CellularNetwork:
+    return CellularNetwork(
+        input=np.zeros(1),
+        initial_state=np.zeros(1),
+        feedback=np.zeros(3),
+        control=np.zeros(3),
+        bias=1.0,
+        activation="identity",
+    )
 
 
-state = np.array([0.0])
+net = make_network()
 dt = 0.1
 for _ in range(10):
-    state = euler_step(state, rhs(state), dt)
+    state = net.step(dt)
 
 exact = 1.0 - math.exp(-1.0)
 error = abs(float(state[0]) - exact)
@@ -58,19 +66,20 @@ assert error < 0.025
 
 ## Falsifying increment-only equilibrium detection
 
-Now take a single Euler step with a very small timestep.
+Now take a single public Euler step with a very small timestep.
 
 ```{code-cell} ipython3
-state = np.array([0.0])
+net.reset()
 dt = 1e-7
-next_state = euler_step(state, rhs(state), dt)
-state_increment = float(np.max(np.abs(next_state - state)))
-residual = float(np.max(np.abs(rhs(next_state))))
+initial_state = net.state.copy()
+next_state = net.step(dt)
+state_increment = float(np.max(np.abs(next_state - initial_state)))
+residual = float(np.max(np.abs(net.derivative(next_state))))
 state_increment, residual
 ```
 
 The increment is below $10^{-6}$ only because it is multiplied by the tiny
-$timestep. The vector field still has magnitude close to one, so the state is
+timestep. The vector field still has magnitude close to one, so the state is
 not close to satisfying $f(x)=0$.
 
 The falsifier targets mathematical properties of the example, not a temporary
@@ -92,16 +101,7 @@ separately. This observation is versioned library behavior; it is deliberately
 not the oracle for the mathematical claim above.
 
 ```{code-cell} ipython3
-from celnn import CellularNetwork, SimulationConfig
-
-net = CellularNetwork(
-    input=np.zeros(1),
-    initial_state=np.zeros(1),
-    feedback=np.zeros(3),
-    control=np.zeros(3),
-    bias=1.0,
-    activation="identity",
-)
+net.reset()
 result = net.run(SimulationConfig(t_end=dt, dt=dt))
 result.convergence
 ```
