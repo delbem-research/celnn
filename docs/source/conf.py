@@ -32,7 +32,10 @@ intersphinx_mapping = {
 
 autodoc_member_order = "bysource"
 autodoc_typehints = "signature"
-_real_torch = os.environ.get("CELNN_DOCS_REAL_TORCH") == "1"
+_real_torch = (
+    os.environ.get("CELNN_DOCS_REAL_TORCH") == "1"
+    or os.environ.get("READTHEDOCS") == "True"
+)
 autodoc_mock_imports = [] if _real_torch else ["torch"]
 
 myst_enable_extensions = ["amsmath", "colon_fence", "dollarmath"]
