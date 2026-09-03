@@ -47,8 +47,11 @@ cache stay under `docs/_build/` and are not committed.
 
 ## Real Torch validation
 
-The base documentation build mocks Torch only to render the structure of
-Torch-backed public APIs. Runtime claims must use the real dependency:
+The base documentation build mocks Torch only to prove that the reference can
+still be generated without installing optional CELNN capabilities. Runtime
+claims and the published Read the Docs site use the real dependency.
+
+For local real-Torch validation:
 
 ```bash
 python -m pip install -e ".[torch]"
@@ -58,6 +61,11 @@ CELNN_DOCS_REAL_TORCH=1 \
   docs/source docs/_build/html-torch
 python docs/check_reference.py docs/_build/html-torch/objects.inv
 ```
+
+Read the Docs installs the CPU-only Torch wheel during `post_install` and sets
+its standard `READTHEDOCS=True` build environment. `conf.py` uses that signal to
+render the real Torch API surface, including constructor signatures, while CI
+retains the separate base build as the optional-dependency isolation oracle.
 
 Mocked imports are reference-rendering aids, never evidence that optional
 behavior works.
