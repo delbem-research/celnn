@@ -26,20 +26,26 @@
 
 ## Optional image helpers
 
-The following module-level helpers require Pillow only when image conversion or file I/O needs it.
+The following helpers are documented from the direct `celnn.domains.image` module. They are not re-exported through `celnn.domains.__all__`, so they are rendered without adding Python-domain targets to the exported-package inventory. Pillow is required only when image conversion or file I/O needs it.
 
 ```{eval-rst}
 .. py:currentmodule:: celnn.domains.image
 
 .. autofunction:: celnn.domains.image.normalize_image
+   :no-index:
 
 .. autofunction:: celnn.domains.image.denormalize_image
+   :no-index:
 
 .. autofunction:: celnn.domains.image.image_to_array
+   :no-index:
 
 .. autofunction:: celnn.domains.image.array_to_image
+   :no-index:
 
 .. autofunction:: celnn.domains.image.load_grayscale
+   :no-index:
 
 .. autofunction:: celnn.domains.image.save_grayscale
+   :no-index:
 ```
