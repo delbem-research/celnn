@@ -5,9 +5,10 @@ import importlib
 from collections import Counter
 from pathlib import Path
 from types import ModuleType
-from typing import Any, cast
+from typing import cast
 
 import celnn
+from sphinx.util.inventory import InventoryFile
 
 PUBLIC_MODULES: dict[str, ModuleType] = {
     "celnn": celnn,
@@ -21,10 +22,47 @@ def _load_inventory(path: Path) -> dict[str, dict[str, object]]:
     if not path.is_file():
         raise SystemExit(f"Sphinx inventory not found: {path}")
 
-    inventory_module = importlib.import_module("sphinx.util.inventory")
-    inventory_file: Any = vars(inventory_module)["InventoryFile"]
-    loaded: Any = inventory_file.loads(path.read_bytes(), uri="")
+    loaded = InventoryFile.loads(path.read_bytes(), uri="")
     return cast(dict[str, dict[str, object]], loaded.data)
+
+
+def _python_objects(
+    inventory: dict[str, dict[str, object]],
+) -> set[str]:
+    objects: set[str] = set()
+    for object_type, entries in inventory.items():
+        if object_type.startswith("py:"):
+            objects.update(entries)
+    return objects
+
+
+def _allowed_public_prefixes() -> tuple[str, ...]:
+    prefixes = [
+        f"{module_name}.{symbol}"
+        for module_name, module in PUBLIC_MODULES.items()
+        for symbol in getattr(module, "__all__", ())
+    ]
+    return tuple(prefixes)
+
+
+def _unexpected_internal_objects(
+    inventory: dict[str, dict[str, object]],
+) -> list[str]:
+    allowed = _allowed_public_prefixes()
+    unexpected: list[str] = []
+
+    for qualified_name in sorted(_python_objects(inventory)):
+        if not qualified_name.startswith("celnn."):
+            continue
+        if any(
+            qualified_name == prefix
+            or qualified_name.startswith(f"{prefix}.")
+            for prefix in allowed
+        ):
+            continue
+        unexpected.append(qualified_name)
+
+    return unexpected
 
 
 def _public_counts(
@@ -99,6 +137,13 @@ def main() -> None:
 
     if not any(name.startswith("py:") for name in inventory):
         errors.append("Sphinx inventory contains no Python-domain objects.")
+
+    unexpected_internal = _unexpected_internal_objects(inventory)
+    if unexpected_internal:
+        errors.append(
+            "Sphinx inventory exposes non-public CELNN Python-domain objects:"
+        )
+        errors.extend(f"  unexpected: {name}" for name in unexpected_internal)
 
     for module_name, module in PUBLIC_MODULES.items():
         errors.extend(_module_errors(module_name, module, inventory))
