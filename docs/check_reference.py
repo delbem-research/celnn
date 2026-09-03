@@ -7,8 +7,9 @@ from pathlib import Path
 from types import ModuleType
 from typing import cast
 
-import celnn
 from sphinx.util.inventory import InventoryFile
+
+import celnn
 
 PUBLIC_MODULES: dict[str, ModuleType] = {
     "celnn": celnn,
@@ -75,6 +76,8 @@ def _unexpected_internal_objects(
             continue
         if _is_public_name(qualified_name, allowed):
             continue
+        # Autodoc may inventory an implementation name as an alias of the
+        # public object. A shared URI means no extra private target was added.
         if _entry_uri(entry) in public_uris:
             continue
         unexpected.append(qualified_name)
