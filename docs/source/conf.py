@@ -22,6 +22,13 @@ nitpicky = True
 nitpick_ignore = [
     ("py:class", "dict[str"),
     ("py:class", "numpy._typing._dtype_like.DTypeLike"),
+    # Optional-domain annotations are intentionally not imported by the base
+    # docs environment. Keep those aliases visible in signatures without
+    # turning Matplotlib/Pillow into documentation runtime dependencies.
+    ("py:class", "np.ndarray"),
+    ("py:class", "Figure"),
+    ("py:class", "Axes"),
+    ("py:class", "PILImage"),
 ]
 
 intersphinx_mapping = {

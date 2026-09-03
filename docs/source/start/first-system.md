@@ -1,3 +1,9 @@
+---
+file_format: mystnb
+kernelspec:
+  name: python3
+---
+
 # Your first CELNN system
 
 This example uses a one-dimensional input and a stable linear drive so that every component can be inspected without image I/O, randomness, optional dependencies, or a complicated template.
@@ -10,7 +16,7 @@ $$
 
 Starting from zero, each cell relaxes toward its corresponding input value.
 
-```{code-cell} python
+```{code-cell} ipython3
 import numpy as np
 
 from celnn import CellularNetwork, SimulationConfig

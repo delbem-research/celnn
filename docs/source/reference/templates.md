@@ -2,14 +2,18 @@
 
 `celnn.templates` exposes reusable template abstractions, a registry, and the built-in template constants intentionally supported by the package.
 
+`Template` and `TemplateRegistry` are public aliases of the same classes exposed at the top level. Their full generated class contracts live in {doc}`core`; this page indexes the `celnn.templates` aliases without creating duplicate implementation targets.
+
 ```{eval-rst}
 .. py:currentmodule:: celnn.templates
 
-.. autoclass:: celnn.templates.Template
-   :members:
+.. py:class:: Template
 
-.. autoclass:: celnn.templates.TemplateRegistry
-   :members:
+   Public alias of :class:`celnn.Template`.
+
+.. py:class:: TemplateRegistry
+
+   Public alias of :class:`celnn.TemplateRegistry`.
 
 .. autofunction:: celnn.templates.builtin_templates
 
