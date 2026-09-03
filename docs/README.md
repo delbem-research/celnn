@@ -45,7 +45,7 @@ CELNN target is rejected as implementation leakage.
 The documentation source lives in `docs/source/`; generated output and notebook
 cache stay under `docs/_build/` and are not committed.
 
-## Real Torch validation
+## Real Torch validation and publication
 
 The base documentation build mocks Torch only to prove that the reference can
 still be generated without installing optional CELNN capabilities. Runtime
@@ -62,10 +62,13 @@ CELNN_DOCS_REAL_TORCH=1 \
 python docs/check_reference.py docs/_build/html-torch/objects.inv
 ```
 
-Read the Docs installs the CPU-only Torch wheel during `post_install` and sets
-its standard `READTHEDOCS=True` build environment. `conf.py` uses that signal to
-render the real Torch API surface, including constructor signatures, while CI
-retains the separate base build as the optional-dependency isolation oracle.
+Read the Docs installs the CPU-only Torch wheel during `post_install`. Its
+standard `READTHEDOCS=True` environment selects the real-Torch autodoc path in
+`conf.py`, so the published API reference includes the actual Torch constructor
+signatures rather than signatures inherited from a mock. The CI `full` lane
+sets the same standard variable and validates that delivery path, while the
+`distribution` lane retains the separate mocked base build as the
+optional-dependency isolation oracle.
 
 Mocked imports are reference-rendering aids, never evidence that optional
 behavior works.
