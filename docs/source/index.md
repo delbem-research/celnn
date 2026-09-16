@@ -1,4 +1,4 @@
-# CELNN Technical Knowledge System
+# CELNN Technical Knowledge
 
 `celnn` is a scientific Python library for Cellular Neural Networks: continuous-time, locally coupled nonlinear dynamical systems over regular arrays. This site separates learning, practical use, scientific explanation, exact API contracts, executable evidence, and implementation ownership so that each kind of knowledge has a clear home.
 
